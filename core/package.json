@@ -1,0 +1,21 @@
+{
+  "name": "@safeear/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SafeEar 공통 계산 코어 (②③④⑤) — 오디오 API 의존 없음",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --no-warnings=ExperimentalWarning --test test/*.test.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "vectors": "node --experimental-strip-types --no-warnings=ExperimentalWarning ../test-vectors/generate.ts"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.0",
+    "typescript": "6.0.3"
+  }
+}

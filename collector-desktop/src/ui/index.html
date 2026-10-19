@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' blob:">
+<title>SafeEar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app" id="app">
+  <div class="scroll" id="scroll">
+
+  <!-- ① 오늘 -->
+  <section id="home">
+    <div class="hero pad">
+      <div class="top"><h1>최근 7일 귀 피로도</h1><div class="sub" id="homeSub">허용 선량 대비</div>
+        <button class="badge" id="badge"><i></i><span id="badgeTx">측정 준비 중</span></button>
+      </div>
+      <div class="ringbox" id="homeRing"></div>
+      <div class="glass">
+        <div><b id="leftPct">–</b><span>남은 여유</span></div>
+        <div><b id="projTx">–</b><span id="projLbl">100% 예상 시점</span></div>
+      </div>
+    </div>
+    <main class="pad">
+      <div class="card">
+        <div class="rowh"><h3>지금 들리는 소리</h3><span class="more" id="tierTx">등급 B · 시스템 캡처</span></div>
+        <canvas class="wave" id="wave" width="680" height="168"></canvas>
+        <div class="liveinfo">
+          <div><b id="liveSpl">–</b><span>추정 음량</span></div>
+          <div><b id="liveVol">–</b><span>윈도우 볼륨</span></div>
+          <div><b id="liveApp">–</b><span>재생 중인 앱</span></div>
+        </div>
+        <div class="outrow"><span class="pill off" id="outPill">출력</span><span class="n" id="outName">출력 장치 확인 중</span></div>
+        <div id="liveHint"></div>
+      </div>
+
+      <div class="card tap" data-doc="dual">
+        <div class="rowh"><h3>두 가지 계산</h3><span class="more">?</span></div>
+        <div class="hint">막대는 뾰족한 소리와 휴식을 반영한 SafeEar 값, 선은 소리 에너지만 더한 기존 방식이에요</div>
+        <div class="dual" id="dual"><div class="bar" id="dualBar"></div><div class="mk" id="dualMk"><b>기존</b></div>
+          <span class="tick" style="left:80%">80%</span><span class="tick" style="left:100%">100%</span></div>
+        <div class="duallg"><span>SafeEar <b id="dualSe">0%</b></span><span>기존 방식 <b id="dualStd">0%</b></span></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">오늘 들은 시간</div><div class="v" id="stToday">0<small>분</small></div></div>
+        <div class="stat"><div class="k">오늘 누적</div><div class="v" id="stTodayPct">0<small>%</small></div></div>
+        <div class="stat tap" data-doc="kurtosis"><div class="k">뾰족함 β (최근 40초) ?</div><div class="v" id="stBeta">–</div></div>
+        <div class="stat"><div class="k">기준 모드</div><div class="v" id="stMode">Mode 2</div></div>
+      </div>
+
+      <div class="card">
+        <div class="rowh"><h3>기기별 기여</h3><span class="more tap" id="toDevices">기기 ›</span></div>
+        <div class="hint">귀는 하나라서 폰 · 패드 · PC에서 들은 소리를 합쳐서 계산해요</div>
+        <div class="devshare" id="devShare"></div>
+        <div class="syncline" id="syncLine"></div>
+      </div>
+
+      <div class="card">
+        <h3>오늘의 피로 곡선</h3>
+        <div class="hint">쉬는 동안 빠른 피로부터 내려가요</div>
+        <div id="curve" style="margin-top:12px"></div>
+        <div class="legend"><span><i style="background:var(--amber)"></i>빠른 피로</span><span><i style="background:var(--blue)"></i>느린 피로</span></div>
+      </div>
+      <div class="card tap" data-go="map">
+        <div class="rowh"><h3>귀 지도</h3><span class="more">자세히 ›</span></div>
+        <div class="hint" id="miniMapHint">음역별 부담</div>
+        <div id="miniMap" style="margin-top:12px"></div>
+      </div>
+    </main>
+  </section>
+
+  <!-- ② 귀 지도 -->
+  <section id="map" hidden>
+    <div class="hero pad" style="padding-bottom:62px"><div class="top"><h1>귀 지도</h1><div class="sub">최근 7일 음역별로 쌓인 부담</div></div></div>
+    <main class="pad">
+      <div class="card">
+        <h3>1/3 옥타브 19개 대역</h3>
+        <div class="hint">3~6 kHz(빨간 구간)는 소음에 가장 약한 음역이에요. 높을수록 그 음역을 많이 들었다는 뜻이에요</div>
+        <div id="bigMap" style="margin-top:14px"></div>
+        <div class="covered" id="coverTx"></div>
+      </div>
+      <div class="card"><h3>한눈에 보기</h3><div class="meter" id="meter" style="margin-top:14px"></div></div>
+      <div class="card tap" data-doc="bands"><div class="rowh"><h3>왜 4 kHz인가요?</h3><span class="more">?</span></div>
+        <div class="hint">달팽이관은 위치마다 담당하는 음높이가 달라요. 그중 4 kHz 부근 세포가 가장 먼저 손상되는 경향이 있어요.</div></div>
+    </main>
+  </section>
+
+  <!-- ③ 회복 -->
+  <section id="recover" hidden>
+    <div class="hero pad">
+      <div class="top"><h1>회복</h1><div class="sub">이어폰을 빼고 쉬어 보세요</div></div>
+      <div class="ringbox" id="timerRing"></div>
+      <button class="herobtn" id="tbtn">시작</button>
+    </div>
+    <main class="pad">
+      <div class="card">
+        <h3>얼마나 쉴까요?</h3>
+        <div class="hint">시간을 고르면 지금 기준으로 얼마나 내려가는지 보여드려요</div>
+        <div class="mins" id="mins"></div>
+      </div>
+      <div class="card tap" data-doc="recovery"><div class="rowh"><h3>쉬어도 0%가 되지 않는 이유</h3><span class="more">?</span></div>
+        <div class="hint">청력 수치가 돌아와도 신경 연결 손상은 남을 수 있다는 연구가 있어요. 그래서 일부는 일주일 동안 그대로 남겨 계산해요.</div></div>
+    </main>
+  </section>
+
+  <!-- ④ 10년 뒤 -->
+  <section id="future" hidden>
+    <div class="hero pad" style="padding-bottom:62px"><div class="top"><h1>10년 뒤 이 노래</h1><div class="sub">지금 습관이 이어지면 이렇게 들려요</div></div></div>
+    <main class="pad">
+      <div class="card">
+        <h3>같은 노래, 세 가지 미래</h3>
+        <div class="seg" id="seg"></div>
+        <div id="eq" style="margin-top:16px"></div>
+        <div class="hint" id="eqnote" style="margin-top:10px;min-height:40px"></div>
+        <button class="btn wide" id="play" style="margin-top:12px">▶  재생</button>
+        <label class="filebtn">내 음악 파일로 들어 보기<input type="file" id="fileIn" accept="audio/*"></label>
+        <div class="hint" style="margin-top:8px">재생하는 동안에는 SafeEar 소리가 측정에 섞이지 않게 분석을 잠시 멈춰요.</div>
+      </div>
+      <div class="card">
+        <h3>예상 청력 변화 (ISO 1999)</h3>
+        <div class="hint" id="isoHint">기록이 쌓이면 계산해요</div>
+        <table class="tbl" id="isoTbl"></table>
+      </div>
+      <div class="card">
+        <h3>무엇이 먼저 흐려지나</h3>
+        <div style="margin-top:6px">
+          <div class="line"><div><div class="n">심벌즈·하이햇</div><div class="m">가장 먼저 흐려져요</div></div><div class="f">6~10 kHz</div></div>
+          <div class="line"><div><div class="n">ㅅ ㅊ ㅌ 같은 자음</div><div class="m">시끄러운 곳에서 말이 안 들려요</div></div><div class="f">3~6 kHz</div></div>
+          <div class="line"><div><div class="n">베이스·드럼</div><div class="m">거의 그대로 남아요</div></div><div class="f">~300 Hz</div></div>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <!-- ⑤ 리포트 -->
+  <section id="report" hidden>
+    <div class="hero pad" style="padding-bottom:62px"><div class="top"><h1>주간 리포트</h1><div class="sub">언제, 무엇으로 들었나</div></div></div>
+    <main class="pad">
+      <div class="card"><h3>언제 들었나</h3><div class="hint" id="heatHint">최근 7일 · 2시간 단위</div><div class="heat" id="heat"></div></div>
+      <div class="card"><h3>부담이 어디서 왔나</h3><div class="hint" id="stackHint">재생한 앱 기준</div><div class="stack" id="stack"></div><div class="legend" id="stackLg"></div></div>
+      <div class="card"><h3>볼륨 추세</h3><div class="hint" id="volHint">이 PC · 지금 출력 장치에서의 하루 평균 윈도우 볼륨</div><div id="vol" style="margin-top:12px"></div></div>
+      <div class="card tap" data-doc="ent"><div class="rowh"><h3>귀가 걱정된다면</h3><span class="more">›</span></div>
+        <div class="hint">정확한 확인은 이비인후과에서 할 수 있어요.</div></div>
+    </main>
+  </section>
+
+  </div>
+
+  <div class="topbtns">
+    <button class="iconbtn" id="pauseBtn" aria-label="측정 일시정지" title="측정 일시정지/다시 시작"></button>
+    <button class="iconbtn avatar" id="avBtn" aria-label="프로필">?</button>
+  </div>
+
+  <nav class="tabbar"><div class="dock" id="track"><div class="lens" id="lens"></div></div></nav>
+  <div id="toasts" aria-live="polite"></div>
+
+  <!-- 프로필 · 설정 -->
+  <div class="screen" id="profile" hidden>
+    <div class="pad">
+      <div class="sh"><button class="back" data-close="profile" aria-label="뒤로">‹</button><h2>프로필 · 설정</h2></div>
+      <div class="sbody">
+        <div class="card who"><div class="bigav" id="pAv">?</div><div style="min-width:0"><div class="n" id="pHead">로그인하지 않음</div><div class="e" id="pMail">이 PC 안에서만 기록해요</div></div></div>
+        <div class="card" id="pLoginCard" hidden>
+          <div class="hint" style="margin-top:0">로그인하면 휴대폰 · 태블릿 · 다른 PC에서 들은 소리와 합쳐 한 사람 기준으로 계산해요.</div>
+          <button class="btn wide blue" id="pToLogin" style="margin-top:12px">로그인 · 회원가입</button>
+        </div>
+
+        <div class="sec">내 정보</div>
+        <div class="card">
+          <div class="field" id="pNameField"><label for="pName">이름</label><input id="pName" maxlength="20" autocomplete="off"></div>
+          <div class="field"><label for="pAge">나이대</label>
+            <select id="pAge"><option value="">선택 안 함</option><option value="14-17">만 14~17세</option><option value="18-19">만 18~19세</option><option value="20s">20대</option><option value="30plus">30대 이상</option></select>
+            <span class="sm">만 18세 미만은 더 엄격한 기준(Mode 2)으로 고정돼요</span></div>
+          <div class="field"><label for="pMode">기준</label>
+            <select id="pMode"><option value="2">Mode 2 · 75 dBA × 40시간/주 (권장)</option><option value="1">Mode 1 · 80 dBA × 40시간/주 (성인)</option></select>
+            <span class="sm">ITU-T H.870 주간 허용 선량</span></div>
+          <button class="btn wide blue" id="pSave" style="margin-top:18px">저장</button>
+        </div>
+
+        <div class="sec" id="devSec">내 기기</div>
+        <div class="card" style="padding-top:4px;padding-bottom:12px">
+          <div id="devList"></div>
+          <div class="syncline" id="devNote"></div>
+        </div>
+
+        <div class="sec">출력 장치 (이어폰 · 스피커)</div>
+        <div class="card">
+          <div class="hint" style="margin-top:0">스피커로 나온 소리는 귀 피로도에 넣지 않아요. 윈도우가 이어폰을 스피커로 잘못 알려 주는 경우가 많으니 확인해 주세요.</div>
+          <div id="outList" style="margin-top:8px"></div>
+        </div>
+
+        <div class="sec">측정</div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <div class="row"><div><div class="n">측정하기</div><div class="m">끄면 소리 분석을 완전히 멈춰요</div></div><button class="sw" role="switch" id="swMeasure" aria-label="측정하기"></button></div>
+          <div class="row"><div><div class="n">캡처 신호에 볼륨이 이미 들어 있음</div><div class="m">볼륨을 바꿔도 파형 크기가 변하면 켜세요 (계획서 9절 #11)</div></div><button class="sw" role="switch" data-set="loopbackIncludesVolume"></button></div>
+          <div class="row"><div><div class="n">윈도우 시작 시 자동 실행</div><div class="m">트레이에서 조용히 측정을 시작해요</div></div><button class="sw" role="switch" data-set="launchAtLogin"></button></div>
+          <div class="row"><div><div class="n">100% 경고를 안 보면 볼륨 낮추기</div><div class="m">H.870 권고 · 10분 뒤 30% 낮춰요</div></div><button class="sw" role="switch" data-set="autoReduceVolume"></button></div>
+        </div>
+
+        <div class="sec">동기화</div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <div class="row"><div><div class="n">기기 간 동기화</div><div class="m">1분 요약값만 올려요. 소리는 올리지 않아요</div></div><button class="sw" role="switch" data-set="syncEnabled"></button></div>
+          <div class="row"><div><div class="n">앱 이름도 올리기</div><div class="m">끄면 '음악·게임' 같은 범주만 올라가요</div></div><button class="sw" role="switch" data-set="syncAppNames"></button></div>
+          <button class="row" data-doc="upload"><div class="n">서버에 올라가는 것 / 올라가지 않는 것</div><div class="ar">›</div></button>
+        </div>
+
+        <div class="sec">알림</div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <div class="row"><div><div class="n">사용량 경고</div><div class="m">허용 선량 80% · 100%에서</div></div><button class="sw" role="switch" data-notify="warn"></button></div>
+          <div class="row"><div><div class="n">쉬어가기 제안</div><div class="m">오래 이어 들었고 쉬면 많이 내려갈 때</div></div><button class="sw" role="switch" data-notify="rest"></button></div>
+          <div class="row"><div><div class="n">주간 리포트</div><div class="m">매주 월요일 아침</div></div><button class="sw" role="switch" data-notify="weekly"></button></div>
+        </div>
+
+        <div class="sec">화면</div>
+        <div class="card"><div style="font-size:14px;font-weight:700">화면 모드</div>
+          <div class="seg2" id="themeSeg"><button data-theme-set="auto">자동</button><button data-theme-set="light">라이트</button><button data-theme-set="dark">다크</button></div>
+          <div style="font-size:14px;font-weight:700;margin-top:18px">테마 색</div>
+          <div class="swatches" id="accents">
+            <button data-accent="ocean"><i style="background:linear-gradient(150deg,#5675DB,#6DB4DA,#BDE5A8)"></i>바다</button>
+            <button data-accent="forest"><i style="background:linear-gradient(150deg,#2E9E7B,#5CC3A0,#CFE9A4)"></i>숲</button>
+            <button data-accent="sunset"><i style="background:linear-gradient(150deg,#E4755A,#F2A15E,#F7D88F)"></i>노을</button>
+            <button data-accent="violet"><i style="background:linear-gradient(150deg,#7A5BDB,#A58AE8,#E4BEF0)"></i>보라</button>
+          </div></div>
+
+        <div class="sec">내 데이터</div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <button class="row" id="exportBtn"><div class="n">내 기록 내보내기 (JSON)</div><div class="ar">›</div></button>
+          <button class="row" id="clearBtn"><div class="n">이 PC 기록 지우기</div><div class="ar">›</div></button>
+          <div class="row"><div><div class="n">친구와 비교하기</div><div class="m">만들지 않았어요 — 점수 줄 세우기는 예방이 아니라 낙인이 될 수 있어서요</div></div></div>
+        </div>
+
+        <div class="card" style="padding-top:4px;padding-bottom:4px" id="accountActions">
+          <button class="row" id="logout"><div class="n danger">로그아웃</div></button>
+          <button class="row" id="deleteAcc"><div class="n danger">회원 탈퇴 (서버 기록 삭제)</div></button>
+        </div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <button class="row" id="toInfo"><div class="n">앱 정보</div><div class="ar">›</div></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 앱 정보 -->
+  <div class="screen" id="info" hidden>
+    <div class="pad">
+      <div class="sh"><button class="back" data-close="info" aria-label="뒤로">‹</button><h2>앱 정보</h2></div>
+      <div class="sbody">
+        <div class="card" style="text-align:center;padding:24px 18px">
+          <div class="bigav" style="margin:0 auto 10px;border-radius:20px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M8 17a4 4 0 0 0 8 0c0-2 3-3 3-7a7 7 0 0 0-14 0"/><path d="M12 8a2.5 2.5 0 0 1 2.5 2.5c0 1.5-2.5 2-2.5 4"/></svg></div>
+          <div style="font-size:19px;font-weight:800;font-family:var(--f-num)">SafeEar for Windows</div>
+          <div style="font-size:12.5px;color:var(--dim);margin-top:2px">내 귀를 지키는 가장 쉬운 습관</div>
+        </div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <button class="row" data-doc="terms"><div class="n">이용약관</div><div class="ar">›</div></button>
+          <button class="row" data-doc="privacy"><div class="n">개인정보 처리방침</div><div class="ar">›</div></button>
+          <button class="row" data-doc="basis"><div class="n">계산 근거와 참고 자료</div><div class="ar">›</div></button>
+          <button class="row" data-doc="tier"><div class="n">측정 등급과 한계</div><div class="ar">›</div></button>
+          <button class="row" data-doc="notmed"><div class="n">의료기기가 아니에요</div><div class="ar">›</div></button>
+        </div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <div class="row"><div class="n">버전</div><div class="v" id="verTx">–</div></div>
+          <div class="row"><div class="n">만든 사람</div><div class="v">경기북과학고 팀 Nabla</div></div>
+          <div class="row"><div class="n">문의</div><div class="v">safeear@example.com</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 문서 보기 -->
+  <div class="screen" id="doc" hidden>
+    <div class="pad">
+      <div class="sh"><button class="back" id="docBack" aria-label="뒤로">‹</button><h2 id="docTitle"></h2></div>
+      <div class="sbody"><div class="card docbody" id="docBody"></div></div>
+    </div>
+  </div>
+
+  <!-- 새 비밀번호 -->
+  <div class="screen auth" id="recoveryScreen" hidden>
+    <div class="brand pad"><h1>새 비밀번호</h1><p>본인 확인이 끝났어요</p></div>
+    <div class="sheetcard pad">
+      <form id="fRecovery" novalidate>
+        <div class="field" style="margin-top:4px"><label for="rPw">새 비밀번호</label><input id="rPw" type="password" placeholder="8자 이상" autocomplete="new-password"></div>
+        <div class="field"><label for="rPw2">새 비밀번호 확인</label><input id="rPw2" type="password" placeholder="한 번 더 입력" autocomplete="new-password"></div>
+        <div class="err" id="rErr"></div>
+        <button class="btn wide blue" type="submit">비밀번호 바꾸기</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 로그인 · 회원가입 -->
+  <div class="screen auth" id="auth" hidden>
+    <div class="brand pad">
+      <div class="logo"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"><path d="M8 17a4 4 0 0 0 8 0c0-2 3-3 3-7a7 7 0 0 0-14 0"/><path d="M12 8a2.5 2.5 0 0 1 2.5 2.5c0 1.5-2.5 2-2.5 4"/></svg></div>
+      <h1>SafeEar</h1><p>폰 · 패드 · PC에서 들은 소리를 한 사람 기준으로</p>
+    </div>
+    <div class="sheetcard pad">
+      <div class="notice" id="noServer" hidden>서버 설정이 아직 없어요. 지금은 「로그인 없이 사용」만 할 수 있어요. (docs/AUTH_SETUP.md)</div>
+      <div class="tabs2" id="authTabs" style="margin-top:14px"><button data-at="login" class="on">로그인</button><button data-at="signup">회원가입</button></div>
+
+      <button class="gbtn" id="googleBtn" type="button"><svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg><span id="googleTx">Google로 계속하기</span></button>
+      <div class="orline">또는 이메일로</div>
+
+      <form id="fLogin" novalidate>
+        <div class="field" style="margin-top:10px"><label for="lEmail">이메일</label><input id="lEmail" type="email" autocomplete="email" placeholder="name@example.com"></div>
+        <div class="field"><label for="lPw">비밀번호</label><input id="lPw" type="password" autocomplete="current-password" placeholder="비밀번호"></div>
+        <div class="err" id="lErr"></div><div class="okmsg" id="lOk"></div>
+        <button class="btn wide blue" type="submit" id="lBtn">로그인</button>
+        <button class="linkbtn" type="button" id="forgotBtn">비밀번호를 잊었어요</button>
+      </form>
+
+      <form id="fSignup" novalidate hidden>
+        <div class="field" style="margin-top:10px"><label for="sName">이름 (별명도 돼요)</label><input id="sName" maxlength="20" autocomplete="nickname" placeholder="이름"></div>
+        <div class="field"><label for="sEmail">이메일</label><input id="sEmail" type="email" autocomplete="email" placeholder="name@example.com"></div>
+        <div class="field"><label for="sPw">비밀번호</label><input id="sPw" type="password" autocomplete="new-password" placeholder="8자 이상"></div>
+        <div class="field"><label for="sPw2">비밀번호 확인</label><input id="sPw2" type="password" autocomplete="new-password" placeholder="한 번 더 입력"></div>
+        <div class="agree">
+          <div class="ag all"><input type="checkbox" id="agAll"><label for="agAll">전체 동의</label></div>
+          <div class="ag"><input type="checkbox" id="ag14" data-req="1"><label for="ag14"><span class="req">[필수]</span>만 14세 이상입니다</label></div>
+          <div class="ag"><input type="checkbox" id="agTerms" data-req="1"><label for="agTerms"><span class="req">[필수]</span>이용약관</label><button type="button" data-doc="terms">보기</button></div>
+          <div class="ag"><input type="checkbox" id="agPriv" data-req="1"><label for="agPriv"><span class="req">[필수]</span>개인정보 수집·이용</label><button type="button" data-doc="privacy">보기</button></div>
+          <div class="ag"><input type="checkbox" id="agSens" data-req="1"><label for="agSens"><span class="req">[필수]</span>청취 기록(1분 요약값) 처리</label><button type="button" data-doc="upload">보기</button></div>
+          <div class="ag"><input type="checkbox" id="agPush"><label for="agPush"><span class="opt">[선택]</span>소식 메일 받기</label></div>
+        </div>
+        <div class="err" id="sErr"></div><div class="okmsg" id="sOk"></div>
+        <button class="btn wide blue" type="submit" id="sBtn" disabled>가입하기</button>
+      </form>
+      <button class="btn wide ghost" id="localBtn" style="margin-top:14px">로그인 없이 사용</button>
+      <div class="fine">로그인 없이도 이 PC 안에서 모든 기능을 쓸 수 있어요. 소리는 어디에도 저장하거나 보내지 않아요.</div>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

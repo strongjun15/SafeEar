@@ -1,0 +1,17 @@
+{
+  "name": "safeear",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SafeEar — 이어폰 사용에 따른 실시간 청각 피로도 추정 (경기북과학고 팀 Nabla)",
+  "workspaces": [
+    "core",
+    "collector-desktop"
+  ],
+  "scripts": {
+    "test": "npm run test -w core",
+    "typecheck": "npm run typecheck -w core && npm run typecheck -w collector-desktop",
+    "vectors": "npm run vectors -w core",
+    "desktop": "npm run start -w collector-desktop",
+    "desktop:dist": "npm run dist -w collector-desktop"
+  }
+}

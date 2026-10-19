@@ -1,0 +1,57 @@
+{
+  "name": "safeear-desktop",
+  "productName": "SafeEar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SafeEar 윈도우 수집기 — 시스템 소리를 백그라운드에서 분석해 귀 피로도를 계산합니다",
+  "author": "경기북과학고 팀 Nabla",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/build.mjs && electron .",
+    "dev": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit -p .",
+    "icons": "python3 scripts/make-icons.py",
+    "dist": "node scripts/build.mjs --prod && electron-builder --win --x64",
+    "dist:dir": "node scripts/build.mjs --prod && electron-builder --win --x64 --dir"
+  },
+  "devDependencies": {
+    "@safeear/core": "0.1.0",
+    "@supabase/supabase-js": "2.117.2",
+    "@types/node": "22.18.0",
+    "electron": "43.7.7",
+    "electron-builder": "26.17.0",
+    "esbuild": "0.28.2",
+    "typescript": "6.0.3"
+  },
+  "build": {
+    "appId": "kr.hs.gbs.nabla.safeear",
+    "productName": "SafeEar",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "native",
+        "to": "native"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "SafeEar"
+    }
+  }
+}

@@ -1,0 +1,901 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>SafeEar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* 레이아웃: 한 화면짜리 앱. 안쪽 영역만 스크롤하고, 하단 유리 탭바는 맨 아래에 붙는다. */
+:root{
+  --bg:#EDF1F8; --card:#FFFFFF; --soft:#F1F5FB; --line:#E2E8F2;
+  --ink:#16243A; --dim:#6B7A90; --dimmer:#9AA8BB;
+  --g1:#5675DB; --g2:#6DB4DA; --g3:#BDE5A8;
+  --blue:#4A6CD9; --teal:#17A398; --amber:#F0A13C; --hot:#E2542E;
+  --tealsoft:#DFF3F0; --hotsoft:#FDEBE4; --onbtn:#FFFFFF;
+  --glass:rgba(240,245,252,.58); --glassline:rgba(255,255,255,.75);
+  --lens:rgba(255,255,255,.92); --lensline:rgba(255,255,255,.9);
+  --shadow:0 6px 22px rgba(40,64,110,.10);
+  --f-ui:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-num:"Outfit","Noto Sans KR",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1526; --card:#172139; --soft:#1F2B47; --line:#2A3858;
+    --ink:#E9EFF9; --dim:#98A8C0; --dimmer:#6F819D;
+    --g1:#33478F; --g2:#35728E; --g3:#46805F;
+    --blue:#8AA3F2; --teal:#4CC9BC; --amber:#F2B25C; --hot:#F0795A;
+    --tealsoft:#163A38; --hotsoft:#3B2522; --onbtn:#08201E;
+    --glass:rgba(26,38,66,.55); --glassline:rgba(255,255,255,.14);
+    --lens:rgba(255,255,255,.16); --lensline:rgba(255,255,255,.22);
+    --shadow:0 6px 22px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1526; --card:#172139; --soft:#1F2B47; --line:#2A3858;
+  --ink:#E9EFF9; --dim:#98A8C0; --dimmer:#6F819D;
+  --g1:#33478F; --g2:#35728E; --g3:#46805F;
+  --blue:#8AA3F2; --teal:#4CC9BC; --amber:#F2B25C; --hot:#F0795A;
+  --tealsoft:#163A38; --hotsoft:#3B2522; --onbtn:#08201E;
+  --glass:rgba(26,38,66,.55); --glassline:rgba(255,255,255,.14);
+  --lens:rgba(255,255,255,.16); --lensline:rgba(255,255,255,.22);
+  --shadow:0 6px 22px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+/* 앱 테마 색 */
+:root[data-accent="forest"]{--g1:#2E9E7B;--g2:#5CC3A0;--g3:#CFE9A4;--blue:#1F8F6E}
+:root[data-accent="sunset"]{--g1:#E4755A;--g2:#F2A15E;--g3:#F7D88F;--blue:#D4583C}
+:root[data-accent="violet"]{--g1:#7A5BDB;--g2:#A58AE8;--g3:#E4BEF0;--blue:#6B4FD0}
+@media (prefers-color-scheme: dark){
+  :root[data-accent="forest"]:not([data-theme="light"]){--g1:#1E6A55;--g2:#2F7E66;--g3:#4E8A5A;--blue:#5CD1AE}
+  :root[data-accent="sunset"]:not([data-theme="light"]){--g1:#8F4332;--g2:#9A6035;--g3:#8A7240;--blue:#F2916F}
+  :root[data-accent="violet"]:not([data-theme="light"]){--g1:#4A3A93;--g2:#5E4C9E;--g3:#7A5A92;--blue:#AE9BF2}
+}
+:root[data-accent="forest"][data-theme="dark"]{--g1:#1E6A55;--g2:#2F7E66;--g3:#4E8A5A;--blue:#5CD1AE}
+:root[data-accent="sunset"][data-theme="dark"]{--g1:#8F4332;--g2:#9A6035;--g3:#8A7240;--blue:#F2916F}
+:root[data-accent="violet"][data-theme="dark"]{--g1:#4A3A93;--g2:#5E4C9E;--g3:#7A5A92;--blue:#AE9BF2}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg)}
+body{color:var(--ink);font-family:var(--f-ui);-webkit-font-smoothing:antialiased;line-height:1.5;display:flex;justify-content:center;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+svg{display:block;max-width:100%}
+[hidden]{display:none!important}
+
+.app{position:relative;width:100%;max-width:430px;height:100%;background:var(--bg);overflow:hidden}
+.scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:118px}
+.pad{padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
+@media (min-width:600px){
+  body{padding:20px 0;align-items:center}
+  .app{height:min(100%,880px);border-radius:36px;box-shadow:0 20px 60px rgba(30,50,90,.22)}
+}
+
+/* 상단 고정 버튼 */
+.topbtns{position:absolute;top:14px;right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:8px;z-index:25}
+.iconbtn{width:40px;height:40px;border-radius:50%;background:rgba(18,30,64,.34);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  color:#fff;display:grid;place-items:center;border:1px solid rgba(255,255,255,.32);font-weight:800;font-size:15px}
+.iconbtn.avatar{font-family:var(--f-ui)}
+
+/* 헤더 */
+.hero{background:linear-gradient(165deg,var(--g1) 0%,var(--g2) 62%,var(--g3) 100%);color:#fff;padding-top:22px;padding-bottom:58px;border-radius:0 0 34px 34px}
+.hero .top{min-height:40px;padding-right:100px}
+.hero h1{font-size:22px;font-weight:800;letter-spacing:-.03em}
+.hero .sub{font-size:13px;opacity:.86;margin-top:2px}
+.ringbox{position:relative;width:216px;height:216px;margin:20px auto 0}
+.ringbox .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ringbox .big{font-family:var(--f-num);font-size:58px;font-weight:600;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+.ringbox .big small{font-size:24px;margin-left:2px;opacity:.85}
+.ringbox .lbl{font-size:12.5px;opacity:.88;margin-top:6px;text-align:center;max-width:150px}
+.glass{display:flex;gap:10px;margin-top:20px}
+.glass div{flex:1;background:rgba(255,255,255,.2);border-radius:16px;padding:11px 14px;min-width:0}
+.glass b{display:block;font-family:var(--f-num);font-size:18px;font-weight:600}
+.glass span{font-size:11.5px;opacity:.88}
+
+main{margin-top:-34px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border-radius:22px;padding:18px;box-shadow:var(--shadow)}
+.card h3{font-size:15px;font-weight:800;letter-spacing:-.02em}
+.card .hint{font-size:12.5px;color:var(--dim);margin-top:3px}
+.rowh{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.more{font-size:12.5px;font-weight:700;color:var(--blue)}
+.tap{cursor:pointer}
+
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:var(--card);border-radius:20px;padding:15px 16px;box-shadow:var(--shadow)}
+.stat .k{font-size:12px;color:var(--dim)}
+.stat .v{font-family:var(--f-num);font-size:26px;font-weight:600;letter-spacing:-.03em;margin-top:2px}
+.stat .v small{font-size:12px;color:var(--dim);font-weight:500;margin-left:3px}
+
+.btn{background:var(--teal);color:var(--onbtn);font-weight:800;font-size:13.5px;padding:11px 17px;border-radius:13px;flex:0 0 auto}
+.btn.wide{width:100%;padding:15px;font-size:15px;border-radius:16px}
+.btn.ghost{background:var(--soft);color:var(--ink)}
+.btn.blue{background:var(--blue);color:#fff}
+.btn:disabled{opacity:.4;cursor:default}
+
+.axl{font-size:10px;fill:var(--dimmer);font-family:var(--f-num)}
+.axl.hot{fill:var(--hot);font-weight:700}
+.grid{stroke:var(--line);stroke-width:1}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px}
+.legend span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+.legend i{width:9px;height:9px;border-radius:3px;display:block}
+
+.meter{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+.meter .r{display:grid;grid-template-columns:64px 1fr 38px;align-items:center;gap:12px;font-size:13px}
+.meter .r em{font-style:normal;color:var(--dim);font-size:12px}
+.meter .track{height:10px;background:var(--soft);border-radius:6px;overflow:hidden}
+.meter .fill{height:100%;border-radius:6px}
+.meter .p{font-family:var(--f-num);font-weight:600;text-align:right}
+
+/* 회복 */
+.mins{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.mins button{background:var(--soft);border:1.5px solid transparent;border-radius:16px;padding:12px 4px;text-align:center}
+.mins .m{display:block;font-size:13px;font-weight:800}
+.mins .d{display:block;font-family:var(--f-num);font-size:16px;font-weight:600;color:var(--teal);margin-top:2px}
+.mins .t{display:block;font-size:11px;color:var(--dim)}
+.mins button.on{background:var(--tealsoft);border-color:var(--teal)}
+.mins button:disabled{opacity:.55;cursor:default}
+.herobtn{display:block;margin:20px auto 0;background:#fff;color:#2C4AA8;font-weight:800;font-size:15px;padding:13px 40px;border-radius:999px}
+
+/* 10년 뒤 */
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.seg button{background:var(--soft);border-radius:16px;padding:12px 6px;text-align:center;border:1.5px solid transparent}
+.seg .t{font-size:13px;font-weight:800;display:block}
+.seg .d{font-size:11px;color:var(--dim);display:block;margin-top:2px}
+.seg button.on{background:var(--hotsoft);border-color:var(--hot)}
+.seg button.on .t{color:var(--hot)}
+.seg button.good.on{background:var(--tealsoft);border-color:var(--teal)}
+.seg button.good.on .t{color:var(--teal)}
+.line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-top:1px solid var(--line)}
+.line:first-of-type{border-top:none}
+.line .n{font-size:13.5px;font-weight:700}
+.line .m{font-size:12px;color:var(--dim);margin-top:1px}
+.line .f{font-family:var(--f-num);font-size:12.5px;color:var(--dim);white-space:nowrap}
+
+/* 히트맵 */
+.heat{display:grid;grid-template-columns:30px repeat(7,1fr);gap:4px;margin-top:14px}
+.heat .c{height:15px;border-radius:5px;background:var(--soft)}
+.heat .d{font-size:11px;color:var(--dimmer);text-align:center;font-weight:700}
+.heat .d.we{color:var(--hot)}
+.heat .t{font-family:var(--f-num);font-size:10px;color:var(--dimmer);text-align:right;padding-right:4px;line-height:15px}
+.stack{display:flex;height:26px;border-radius:10px;overflow:hidden;gap:2px;margin-top:14px}
+
+/* 리퀴드 글래스 탭바 */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:30;padding:8px max(10px,env(safe-area-inset-right,0px)) 8px max(10px,env(safe-area-inset-left,0px));
+  background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(1.8);backdrop-filter:blur(22px) saturate(1.8);
+  border-top:1px solid var(--glassline);border-radius:26px 26px 0 0;box-shadow:0 -8px 30px rgba(40,64,110,.12)}
+.dock{position:relative;display:flex;height:60px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.lens{position:absolute;top:0;left:0;height:100%;width:20%;border-radius:20px;background:var(--lens);
+  border:1px solid var(--lensline);box-shadow:0 4px 14px rgba(40,64,110,.16),inset 0 1px 0 rgba(255,255,255,.7);
+  -webkit-backdrop-filter:blur(10px) saturate(1.7);backdrop-filter:blur(10px) saturate(1.7);
+  transition:transform .42s cubic-bezier(.3,1.35,.5,1),box-shadow .2s}
+.dock.drag{cursor:grabbing}
+.dock.drag .lens{transition:box-shadow .2s;box-shadow:0 10px 26px rgba(40,64,110,.28),inset 0 1px 0 rgba(255,255,255,.8)}
+.dock button{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--dimmer);transition:color .2s}
+.dock button span{font-size:11px;font-weight:700}
+.dock button.on,.dock button.peek{color:var(--blue)}
+.dock.drag button.on:not(.peek){color:var(--dimmer)}
+
+/* 알림 팝업 */
+#toasts{position:absolute;top:64px;left:max(14px,env(safe-area-inset-left,0px));right:max(14px,env(safe-area-inset-right,0px));z-index:100;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{pointer-events:auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:13px 12px 13px 14px;display:flex;gap:12px;align-items:flex-start;
+  box-shadow:0 12px 34px rgba(24,40,80,.22);animation:drop .38s cubic-bezier(.2,1.2,.4,1);transition:opacity .25s,transform .25s}
+.toast.out{opacity:0;transform:translateY(-14px)}
+.toast .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto}
+.toast.warn .ic{background:var(--hotsoft);color:var(--hot)}
+.toast.rest .ic{background:var(--tealsoft);color:var(--teal)}
+.toast.ok .ic{background:var(--soft);color:var(--blue)}
+.toast .tx{flex:1;min-width:0}
+.toast .t{font-size:13.5px;font-weight:800;letter-spacing:-.02em;line-height:1.4}
+.toast .d{font-size:12px;color:var(--dim);margin-top:2px}
+.toast .go{margin-top:9px;background:var(--teal);color:var(--onbtn);font-weight:800;font-size:12.5px;padding:7px 13px;border-radius:10px}
+.toast .x{color:var(--dimmer);font-size:18px;line-height:1;padding:2px 6px}
+@keyframes drop{from{opacity:0;transform:translateY(-22px) scale(.96)}to{opacity:1;transform:none}}
+
+/* 전체 화면 (프로필, 앱 정보, 약관, 로그인) */
+.screen{position:absolute;inset:0;background:var(--bg);overflow-y:auto;overscroll-behavior:contain;z-index:50;animation:slide .28s ease}
+#info{z-index:55}#doc{z-index:70}#auth{z-index:90;animation:none}
+@keyframes slide{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+.sh{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding-top:16px;padding-bottom:12px;background:var(--bg)}
+.sh h2{font-size:19px;font-weight:800;letter-spacing:-.03em}
+.back{width:40px;height:40px;border-radius:50%;background:var(--card);box-shadow:var(--shadow);display:grid;place-items:center;font-size:20px;line-height:1}
+.sbody{display:flex;flex-direction:column;gap:12px;padding-bottom:40px}
+.who{display:flex;align-items:center;gap:14px}
+.bigav{width:62px;height:62px;border-radius:50%;background:linear-gradient(150deg,var(--g1),var(--g2));color:#fff;display:grid;place-items:center;font-size:26px;font-weight:800}
+.who .n{font-size:18px;font-weight:800;letter-spacing:-.02em}
+.who .e{font-size:12.5px;color:var(--dim)}
+.sec{font-size:12.5px;font-weight:800;color:var(--dim);margin:6px 4px -2px}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.field:first-of-type{margin-top:0}
+.field label{font-size:12.5px;font-weight:700;color:var(--dim)}
+.field input,.field select{height:48px;border-radius:14px;background:var(--soft);border:1.5px solid transparent;padding:0 14px;font-size:15px;width:100%;appearance:none;-webkit-appearance:none}
+.field input:focus,.field select:focus{border-color:var(--blue);outline:none}
+.field input[readonly]{color:var(--dimmer)}
+.field .sm{font-size:12px;color:var(--dimmer)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 0;border-top:1px solid var(--line);width:100%;text-align:left}
+.row:first-child{border-top:none}
+.row .n{font-size:14px;font-weight:700}
+.row .m{font-size:12px;color:var(--dim);margin-top:1px}
+.row .ar{color:var(--dimmer);font-size:18px}
+.row .v{font-size:13px;color:var(--dim);font-family:var(--f-num)}
+.sw{position:relative;width:50px;height:30px;border-radius:999px;background:var(--line);flex:0 0 auto;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
+.sw[aria-checked="true"]{background:var(--teal)}
+.sw[aria-checked="true"]::after{transform:translateX(20px)}
+.seg2{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--soft);padding:4px;border-radius:14px;margin-top:10px}
+.seg2 button{padding:10px 0;border-radius:10px;font-size:13px;font-weight:700;color:var(--dim)}
+.seg2 button.on{background:var(--card);color:var(--ink);box-shadow:0 2px 8px rgba(40,64,110,.12)}
+.danger{color:var(--hot);font-weight:700}
+.docbody{font-size:14px;line-height:1.75}
+.docbody h4{font-size:14.5px;font-weight:800;margin:20px 0 4px}
+.docbody h4:first-child{margin-top:0}
+.docbody p,.docbody li{color:var(--dim)}
+.docbody ul{padding-left:18px}
+.docbody .upd{font-size:12px;color:var(--dimmer);margin-bottom:12px}
+
+/* 로그인 */
+.auth{background:linear-gradient(170deg,var(--g1) 0%,var(--g2) 55%,var(--g3) 100%);display:flex;flex-direction:column}
+.brand{padding-top:48px;padding-bottom:30px;color:#fff;text-align:center}
+.brand .logo{width:68px;height:68px;border-radius:22px;background:rgba(255,255,255,.22);display:grid;place-items:center;margin:0 auto 12px;border:1px solid rgba(255,255,255,.4)}
+.brand h1{font-family:var(--f-num);font-size:30px;font-weight:600;letter-spacing:-.02em}
+.brand p{font-size:14px;opacity:.9;margin-top:4px}
+.sheetcard{flex:1;background:var(--bg);border-radius:30px 30px 0 0;padding-top:20px;padding-bottom:30px}
+.tabs2{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);padding:4px;border-radius:14px}
+.tabs2 button{padding:11px 0;border-radius:10px;font-size:14px;font-weight:800;color:var(--dim)}
+.tabs2 button.on{background:var(--card);color:var(--ink);box-shadow:0 2px 8px rgba(40,64,110,.12)}
+.agree{display:flex;flex-direction:column;margin-top:16px;background:var(--card);border-radius:18px;padding:6px 14px}
+.ag{display:flex;align-items:center;gap:11px;padding:11px 0;border-top:1px solid var(--line);font-size:13.5px}
+.ag:first-child{border-top:none}
+.ag input{width:20px;height:20px;accent-color:var(--teal);flex:0 0 auto}
+.ag label{flex:1;min-width:0}
+.ag .req{color:var(--teal);font-weight:700;margin-right:4px}
+.ag .opt{color:var(--dimmer);font-weight:700;margin-right:4px}
+.ag button{font-size:12.5px;color:var(--dim);text-decoration:underline;flex:0 0 auto}
+.ag.all{font-weight:800;font-size:14.5px}
+.err{color:var(--hot);font-size:12.5px;min-height:18px;margin-top:10px}
+.fine{font-size:12px;color:var(--dimmer);text-align:center;margin-top:12px}
+
+.devcard{display:flex;align-items:center;gap:13px;padding:14px 16px}
+.devic{width:44px;height:44px;border-radius:14px;background:var(--soft);color:var(--blue);display:grid;place-items:center;flex:0 0 auto}
+.devcard .tx{flex:1;min-width:0}
+.devcard .n{font-size:14.5px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.devcard .m{font-size:12px;color:var(--dim)}
+.pill{font-size:12px;font-weight:800;padding:5px 10px;border-radius:999px;background:var(--tealsoft);color:var(--teal);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.off{background:var(--soft);color:var(--dimmer)}
+.radio{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;display:grid;place-items:center}
+.row.sel .radio{border-color:var(--teal)}
+.row.sel .radio::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--teal)}
+.row .lft{display:flex;align-items:center;gap:12px;min-width:0}
+.row .lft .devic{width:38px;height:38px;border-radius:12px}
+.swatches{display:flex;gap:12px;margin-top:12px}
+.swatches button{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--dim)}
+.swatches i{width:100%;height:42px;border-radius:14px;display:block;border:2.5px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.swatches button.on{color:var(--ink)}
+.swatches button.on i{border-color:var(--ink)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app" id="app">
+  <div class="scroll" id="scroll">
+
+  <section id="map" hidden>
+    <div class="hero pad" style="padding-bottom:62px"><div class="top"><h1>귀 지도</h1><div class="sub">음역별로 쌓인 부담</div></div></div>
+    <main class="pad">
+      <div class="card">
+        <h3>이번 주 음역별 부담</h3>
+        <div class="hint">높을수록 그 음역을 많이 들었다는 뜻이에요</div>
+        <div id="bigMap" style="margin-top:14px"></div>
+      </div>
+      <div class="card"><h3>한눈에 보기</h3><div class="meter" id="meter" style="margin-top:14px"></div></div>
+    </main>
+  </section>
+
+  <section id="recover" hidden>
+    <div class="hero pad">
+      <div class="top"><h1>회복</h1><div class="sub">이어폰을 빼고 쉬어 보세요</div></div>
+      <div class="ringbox" id="timerRing"></div>
+      <button class="herobtn" id="tbtn">시작</button>
+    </div>
+    <main class="pad">
+      <div class="card">
+        <h3>얼마나 쉴까요?</h3>
+        <div class="hint">시간을 고르면 피로도가 얼마나 내려가는지 보여드려요</div>
+        <div class="mins" id="mins"></div>
+      </div>
+    </main>
+  </section>
+
+  <section id="home">
+    <div class="hero pad">
+      <div class="top"><h1>이번 주 귀 피로도</h1><div class="sub">월요일부터 지금까지</div></div>
+      <div class="ringbox" id="homeRing"></div>
+      <div class="glass">
+        <div><b id="leftPct">45%</b><span>남은 여유</span></div>
+        <div><b>토 23시쯤</b><span>넘을 것으로 예상</span></div>
+      </div>
+    </div>
+    <main class="pad">
+      <div class="card tap devcard" id="homeDev"></div>
+      <div class="stats">
+        <div class="stat"><div class="k">지금 음량</div><div class="v">78<small>dBA</small></div></div>
+        <div class="stat"><div class="k">오늘 들은 시간</div><div class="v">3<small>시간</small> 12<small>분</small></div></div>
+      </div>
+      <div class="card">
+        <h3>오늘의 피로 곡선</h3>
+        <div class="hint">쉬는 동안 빠른 피로부터 내려가요</div>
+        <div id="curve" style="margin-top:12px"></div>
+        <div class="legend"><span><i style="background:var(--amber)"></i>빠른 피로</span><span><i style="background:var(--blue)"></i>느린 피로</span></div>
+      </div>
+      <div class="card tap" data-go="map">
+        <div class="rowh"><h3>귀 지도</h3><span class="more">자세히 ›</span></div>
+        <div class="hint">4 kHz 부근이 이번 주 가장 높아요</div>
+        <div id="miniMap" style="margin-top:12px"></div>
+      </div>
+    </main>
+  </section>
+
+  <section id="future" hidden>
+    <div class="hero pad" style="padding-bottom:62px"><div class="top"><h1>10년 뒤 이 노래</h1><div class="sub">지금 습관이 이어지면 이렇게 들려요</div></div></div>
+    <main class="pad">
+      <div class="card">
+        <h3>같은 노래, 세 가지 미래</h3>
+        <div class="seg" id="seg"></div>
+        <div id="eq" style="margin-top:16px"></div>
+        <div class="hint" id="eqnote" style="margin-top:10px;min-height:40px"></div>
+        <button class="btn wide" id="play" style="margin-top:12px">▶  재생</button>
+      </div>
+      <div class="card">
+        <h3>무엇이 먼저 흐려지나</h3>
+        <div style="margin-top:6px">
+          <div class="line"><div><div class="n">심벌즈·하이햇</div><div class="m">가장 먼저 흐려져요</div></div><div class="f">6~10 kHz</div></div>
+          <div class="line"><div><div class="n">ㅅ ㅊ ㅌ 같은 자음</div><div class="m">시끄러운 곳에서 말이 안 들려요</div></div><div class="f">3~6 kHz</div></div>
+          <div class="line"><div><div class="n">베이스·드럼</div><div class="m">거의 그대로 남아요</div></div><div class="f">~300 Hz</div></div>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <section id="report" hidden>
+    <div class="hero pad" style="padding-bottom:62px"><div class="top"><h1>주간 리포트</h1><div class="sub">언제, 무엇으로 들었나</div></div></div>
+    <main class="pad">
+      <div class="card"><h3>언제 들었나</h3><div class="hint">금요일 밤과 토요일 저녁에 몰려 있어요</div><div class="heat" id="heat"></div></div>
+      <div class="card"><h3>부담이 어디서 왔나</h3><div class="hint">이번 주 부담의 62%가 게임이에요</div><div class="stack" id="stack"></div><div class="legend" id="stackLg"></div></div>
+      <div class="card"><h3>볼륨 추세</h3><div class="hint">같은 조건에서 3주째 조금씩 올라가고 있어요</div><div id="vol" style="margin-top:12px"></div></div>
+    </main>
+  </section>
+
+  </div>
+
+  <div class="topbtns">
+    <button class="iconbtn" id="bell" aria-label="알림 다시 보기"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9Z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></button>
+    <button class="iconbtn avatar" id="avBtn" aria-label="프로필">?</button>
+  </div>
+
+  <nav class="tabbar"><div class="dock" id="track"><div class="lens" id="lens"></div></div></nav>
+  <div id="toasts" aria-live="polite"></div>
+
+  <!-- 프로필 -->
+  <div class="screen" id="profile" hidden>
+    <div class="pad">
+      <div class="sh"><button class="back" data-close="profile" aria-label="뒤로">‹</button><h2>프로필</h2></div>
+      <div class="sbody">
+        <div class="card who"><div class="bigav" id="pAv">?</div><div><div class="n" id="pHead">이름</div><div class="e" id="pMail">email</div></div></div>
+
+        <div class="sec" id="devSec">연결된 기기</div>
+        <div class="card" style="padding-top:4px;padding-bottom:12px">
+          <div id="devList"></div>
+          <div style="font-size:12px;color:var(--dimmer);margin-top:4px">지금은 예시 기기 목록이에요. 누르면 연결을 바꿔 볼 수 있어요.</div>
+        </div>
+
+        <div class="sec">내 정보</div>
+        <div class="card">
+          <div class="field"><label for="pName">이름</label><input id="pName" maxlength="20" autocomplete="off"></div>
+          <div class="field"><label for="pEmail">이메일</label><input id="pEmail" readonly></div>
+          <div class="field"><label for="pAge">나이대</label>
+            <select id="pAge"><option>10대</option><option>20대</option><option>30대 이상</option></select>
+            <span class="sm">나이대에 따라 권장 사용량 기준이 달라져요</span></div>
+          <div class="field"><label for="pEar">주로 쓰는 기기</label>
+            <select id="pEar"><option>무선 이어폰</option><option>유선 이어폰</option><option>헤드폰</option></select></div>
+          <button class="btn wide blue" id="pSave" style="margin-top:18px">저장</button>
+        </div>
+
+        <div class="sec">알림</div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <div class="row"><div><div class="n">사용량 경고</div><div class="m">권장 사용량을 넘을 것 같을 때</div></div><button class="sw" role="switch" data-pref="warn" aria-label="사용량 경고"></button></div>
+          <div class="row"><div><div class="n">쉬어가기 제안</div><div class="m">쉬면 많이 내려갈 때</div></div><button class="sw" role="switch" data-pref="rest" aria-label="쉬어가기 제안"></button></div>
+          <div class="row"><div><div class="n">주간 리포트</div><div class="m">매주 월요일 아침</div></div><button class="sw" role="switch" data-pref="weekly" aria-label="주간 리포트"></button></div>
+        </div>
+
+        <div class="sec">화면</div>
+        <div class="card"><div style="font-size:14px;font-weight:700">화면 모드</div>
+          <div class="seg2" id="themeSeg"><button data-theme-set="auto">자동</button><button data-theme-set="light">라이트</button><button data-theme-set="dark">다크</button></div>
+          <div style="font-size:14px;font-weight:700;margin-top:18px">테마 색</div>
+          <div class="swatches" id="accents">
+            <button data-accent="ocean"><i style="background:linear-gradient(150deg,#5675DB,#6DB4DA,#BDE5A8)"></i>바다</button>
+            <button data-accent="forest"><i style="background:linear-gradient(150deg,#2E9E7B,#5CC3A0,#CFE9A4)"></i>숲</button>
+            <button data-accent="sunset"><i style="background:linear-gradient(150deg,#E4755A,#F2A15E,#F7D88F)"></i>노을</button>
+            <button data-accent="violet"><i style="background:linear-gradient(150deg,#7A5BDB,#A58AE8,#E4BEF0)"></i>보라</button>
+          </div></div>
+
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <button class="row" id="logout"><div class="n danger">로그아웃</div></button>
+        </div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <button class="row" id="toInfo"><div class="n">앱 정보</div><div class="ar">›</div></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 앱 정보 -->
+  <div class="screen" id="info" hidden>
+    <div class="pad">
+      <div class="sh"><button class="back" data-close="info" aria-label="뒤로">‹</button><h2>앱 정보</h2></div>
+      <div class="sbody">
+        <div class="card" style="text-align:center;padding:24px 18px">
+          <div class="bigav" style="margin:0 auto 10px;border-radius:20px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M8 17a4 4 0 0 0 8 0c0-2 3-3 3-7a7 7 0 0 0-14 0"/><path d="M12 8a2.5 2.5 0 0 1 2.5 2.5c0 1.5-2.5 2-2.5 4"/></svg></div>
+          <div style="font-size:19px;font-weight:800;font-family:var(--f-num)">SafeEar</div>
+          <div style="font-size:12.5px;color:var(--dim);margin-top:2px">내 귀를 지키는 가장 쉬운 습관</div>
+        </div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <button class="row" data-doc="terms"><div class="n">이용약관</div><div class="ar">›</div></button>
+          <button class="row" data-doc="privacy"><div class="n">개인정보 처리방침</div><div class="ar">›</div></button>
+          <button class="row" data-doc="basis"><div class="n">계산 근거와 참고 자료</div><div class="ar">›</div></button>
+          <button class="row" data-doc="notmed"><div class="n">의료기기가 아니에요</div><div class="ar">›</div></button>
+        </div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px">
+          <div class="row"><div class="n">버전</div><div class="v">1.0.0</div></div>
+          <div class="row"><div class="n">만든 사람</div><div class="v">경기북과학고 팀 Nabla</div></div>
+          <div class="row"><div class="n">문의</div><div class="v">safeear@example.com</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 약관 보기 -->
+  <div class="screen" id="doc" hidden>
+    <div class="pad">
+      <div class="sh"><button class="back" id="docBack" aria-label="뒤로">‹</button><h2 id="docTitle"></h2></div>
+      <div class="sbody"><div class="card docbody" id="docBody"></div></div>
+    </div>
+  </div>
+
+  <!-- 로그인 · 회원가입 -->
+  <div class="screen auth" id="auth">
+    <div class="brand pad">
+      <div class="logo"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"><path d="M8 17a4 4 0 0 0 8 0c0-2 3-3 3-7a7 7 0 0 0-14 0"/><path d="M12 8a2.5 2.5 0 0 1 2.5 2.5c0 1.5-2.5 2-2.5 4"/></svg></div>
+      <h1>SafeEar</h1><p>내 귀를 지키는 가장 쉬운 습관</p>
+    </div>
+    <div class="sheetcard pad">
+      <div class="tabs2" id="authTabs"><button data-at="login" class="on">로그인</button><button data-at="signup">회원가입</button></div>
+
+      <form id="fLogin" novalidate>
+        <div class="field" style="margin-top:18px"><label for="lEmail">이메일</label><input id="lEmail" type="email" autocomplete="off" placeholder="name@example.com"></div>
+        <div class="field"><label for="lPw">비밀번호</label><input id="lPw" type="password" autocomplete="off" placeholder="비밀번호"></div>
+        <div class="err" id="lErr"></div>
+        <button class="btn wide blue" type="submit">로그인</button>
+      </form>
+
+      <form id="fSignup" novalidate hidden>
+        <div class="field" style="margin-top:18px"><label for="sName">이름</label><input id="sName" maxlength="20" autocomplete="off" placeholder="이름"></div>
+        <div class="field"><label for="sEmail">이메일</label><input id="sEmail" type="email" autocomplete="off" placeholder="name@example.com"></div>
+        <div class="field"><label for="sPw">비밀번호</label><input id="sPw" type="password" autocomplete="off" placeholder="8자 이상"></div>
+        <div class="field"><label for="sPw2">비밀번호 확인</label><input id="sPw2" type="password" autocomplete="off" placeholder="한 번 더 입력"></div>
+        <div class="agree">
+          <div class="ag all"><input type="checkbox" id="agAll"><label for="agAll">전체 동의</label></div>
+          <div class="ag"><input type="checkbox" id="ag14" data-req="1"><label for="ag14"><span class="req">[필수]</span>만 14세 이상입니다</label></div>
+          <div class="ag"><input type="checkbox" id="agTerms" data-req="1"><label for="agTerms"><span class="req">[필수]</span>이용약관</label><button type="button" data-doc="terms">보기</button></div>
+          <div class="ag"><input type="checkbox" id="agPriv" data-req="1"><label for="agPriv"><span class="req">[필수]</span>개인정보 수집·이용</label><button type="button" data-doc="privacy">보기</button></div>
+          <div class="ag"><input type="checkbox" id="agPush"><label for="agPush"><span class="opt">[선택]</span>알림 받기</label></div>
+        </div>
+        <div class="err" id="sErr"></div>
+        <button class="btn wide blue" type="submit" id="sBtn" disabled>가입하기</button>
+      </form>
+      <div class="fine">시연용 화면이라 입력한 내용은 서버로 보내지 않아요.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const NS="http://www.w3.org/2000/svg";
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+/* ---------- 저장소 (이 브라우저에만, 없어도 동작) ---------- */
+const KEY="safeear.v1";
+const store={get(){try{return JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){return null}},set(v){try{localStorage.setItem(KEY,JSON.stringify(v))}catch(e){}}};
+const S=Object.assign({device:"airpods",pct:55,minutes:30,loggedIn:false,user:{name:"",email:"",age:"10대",ear:"무선 이어폰"},prefs:{warn:true,rest:true,weekly:true,theme:"auto",accent:"ocean"}},store.get()||{});
+S.prefs.accent=S.prefs.accent||"ocean";
+S.pct=55; // 시연용: 열 때마다 55%에서 시작
+const save=()=>store.set({loggedIn:S.loggedIn,user:S.user,prefs:S.prefs,device:S.device});
+
+/* ---------- 색 ---------- */
+const BANDS=[["125",.18],["160",.20],["200",.24],["250",.27],["315",.31],["400",.34],["500",.38],["630",.42],["800",.45],["1k",.49],["1.25k",.54],["1.6k",.60],["2k",.66],["2.5k",.74],["3.15k",.85],["4k",1.0],["5k",.92],["6.3k",.80],["8k",.58]];
+const RAMP=["#4B6FD0","#17A398","#8CC24E","#F0A13C","#E2542E"];
+function mix(h1,h2,t){const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const a=p(h1),b=p(h2);return `rgb(${a.map((x,i)=>Math.round(lerp(x,b[i],t))).join(",")})`}
+function bandColor(v){v=Math.max(0,Math.min(1,v));const s=RAMP.length-1,i=Math.min(s-1,Math.floor(v*s));return mix(RAMP[i],RAMP[i+1],v*s-i)}
+
+/* ---------- 링 ---------- */
+const RC=2*Math.PI*88;
+function ring(el,frac,center,label){
+  el.innerHTML=`<svg viewBox="0 0 216 216" width="216" height="216">
+    <defs><linearGradient id="rg${el.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E4F6C8"/></linearGradient></defs>
+    <circle cx="108" cy="108" r="88" fill="none" stroke="rgba(255,255,255,.26)" stroke-width="16"/>
+    <circle class="arc" cx="108" cy="108" r="88" fill="none" stroke="url(#rg${el.id})" stroke-width="16" stroke-linecap="round"
+      stroke-dasharray="${RC}" stroke-dashoffset="${RC*(1-frac)}" transform="rotate(-90 108 108)" style="transition:stroke-dashoffset .9s ease"/>
+  </svg><div class="mid">${center}<div class="lbl">${label}</div></div>`;
+}
+const setArc=(id,f,fast)=>{const a=$("#"+id+" .arc");a.style.transition=fast?"stroke-dashoffset 1s linear":"stroke-dashoffset .9s ease";a.setAttribute("stroke-dashoffset",RC*(1-f))};
+ring($("#homeRing"),0,`<div class="big"><span id="homePct">0</span><small>%</small></div>`,"권장 사용량 중");
+ring($("#timerRing"),0,`<div class="big" id="clock" style="font-size:50px">30:00</div>`,`<span id="timerLbl"></span>`);
+function paintHome(){
+  $("#homePct").textContent=S.pct;$("#leftPct").textContent=(100-S.pct)+"%";
+  setArc("homeRing",S.pct/100);
+}
+
+/* ---------- 차트 ---------- */
+function barMap(w,h,axis){
+  const bw=w/BANDS.length,pad=axis?22:16;
+  let s=`<svg viewBox="0 0 ${w} ${h+pad}" width="100%">`;
+  if(axis){[0,.5,1].forEach(g=>{const y=h-g*(h-10);s+=`<line class="grid" x1="0" x2="${w}" y1="${y}" y2="${y}"/>`});
+    const i1=BANDS.findIndex(b=>b[0]==="3.15k"),i2=BANDS.findIndex(b=>b[0]==="6.3k");
+    s+=`<rect x="${i1*bw}" y="0" width="${(i2-i1+1)*bw}" height="${h}" rx="8" style="fill:var(--hot);opacity:.09"/>`}
+  BANDS.forEach((b,i)=>{const bh=b[1]*(h-10);s+=`<rect x="${i*bw+2}" y="${h-bh}" width="${bw-4}" height="${bh}" rx="${Math.min(6,(bw-4)/2)}" fill="${bandColor(b[1])}"/>`});
+  const labs=axis?["125","250","500","1k","2k","4k","8k"]:["125","500","2k","4k","8k"];
+  BANDS.forEach((b,i)=>{if(labs.includes(b[0]))s+=`<text class="axl ${b[0]==="4k"?"hot":""}" x="${i*bw+bw/2}" y="${h+pad-5}" text-anchor="middle">${b[0]}</text>`});
+  return s+"</svg>";
+}
+$("#miniMap").innerHTML=barMap(320,64,false);
+$("#bigMap").innerHTML=barMap(340,190,true);
+(function(){
+  const avg=(a,b)=>{const x=BANDS.slice(a,b+1);return x.reduce((s,v)=>s+v[1],0)/x.length};
+  [["저음","125~500 Hz",avg(0,6)],["중음","630~2.5k",avg(7,13)],["고음","3~8 kHz",avg(14,18)]].forEach(([n,r,v])=>{
+    $("#meter").insertAdjacentHTML("beforeend",`<div class="r"><div><b>${n}</b><br><em>${r}</em></div><div class="track"><div class="fill" style="width:${v*100}%;background:${bandColor(v)}"></div></div><div class="p">${Math.round(v*100)}</div></div>`)});
+})();
+(function(){
+  let f=0,s=0;const pts=[];
+  for(let t=0;t<480;t++){const d=t<95?1:t<130?0:t<300?1:t<340?0:t<430?1:0;f+=.55*d-f/30;s+=.30*d-s/240;pts.push([f,s])}
+  const w=340,h=150,mx=Math.max(...pts.map(p=>p[0]+p[1]));
+  const X=i=>i/(pts.length-1)*w,Y=v=>h-v/mx*(h-12);
+  let a="M0,"+h,b="M0,"+h;
+  pts.forEach((p,i)=>{a+=` L${X(i).toFixed(1)},${Y(p[0]+p[1]).toFixed(1)}`;b+=` L${X(i).toFixed(1)},${Y(p[1]).toFixed(1)}`});
+  a+=` L${w},${h}Z`;b+=` L${w},${h}Z`;const last=pts[pts.length-1];
+  $("#curve").innerHTML=`<svg viewBox="0 0 ${w} ${h+22}" width="100%">
+   <line class="grid" x1="0" x2="${w}" y1="${h*.5}" y2="${h*.5}"/>
+   <path d="${a}" style="fill:var(--amber);fill-opacity:.28;stroke:var(--amber)" stroke-width="2.4" stroke-linejoin="round"/>
+   <path d="${b}" style="fill:var(--blue);fill-opacity:.2;stroke:var(--blue)" stroke-width="2" stroke-linejoin="round"/>
+   <circle cx="${w}" cy="${Y(last[0]+last[1])}" r="4.5" style="fill:var(--amber)"/>
+   <line class="grid" x1="0" x2="${w}" y1="${h}" y2="${h}"/>
+   <text class="axl" x="0" y="${h+16}">8시간 전</text><text class="axl" x="${w/2}" y="${h+16}" text-anchor="middle">4시간 전</text><text class="axl" x="${w}" y="${h+16}" text-anchor="end">지금</text></svg>`;
+})();
+
+/* ---------- 알림 팝업 ---------- */
+const TICON={
+  warn:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17.3v.1"/></svg>',
+  rest:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  ok:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+};
+function notify({type="ok",title,desc,action,onAction,ttl=7000}){
+  const t=document.createElement("div");t.className="toast "+type;
+  t.innerHTML=`<div class="ic">${TICON[type]}</div><div class="tx"><div class="t"></div>${desc?'<div class="d"></div>':""}${action?'<button class="go"></button>':""}</div><button class="x" aria-label="닫기">×</button>`;
+  t.querySelector(".t").textContent=title;if(desc)t.querySelector(".d").textContent=desc;
+  const close=()=>{t.classList.add("out");setTimeout(()=>t.remove(),260)};
+  t.querySelector(".x").onclick=close;
+  if(action){const g=t.querySelector(".go");g.textContent=action;g.onclick=()=>{close();onAction&&onAction()}}
+  $("#toasts").appendChild(t);setTimeout(close,ttl);return t;
+}
+let noticeTimers=[];
+function showNotices(){
+  noticeTimers.forEach(clearTimeout);noticeTimers=[];$("#toasts").innerHTML="";
+  let n=0;
+  if(S.prefs.warn){noticeTimers.push(setTimeout(()=>notify({type:"warn",title:"이대로면 토요일 밤 11시쯤 권장 사용량을 넘겨요",desc:"최근 3주 패턴으로 예상했어요. 오차는 ±4시간이에요.",ttl:8000}),400+n*900));n++}
+  if(S.prefs.rest){const d=Math.round(S.pct-Math.max(S.pct-DROP[30],15));
+    noticeTimers.push(setTimeout(()=>notify({type:"rest",title:`지금 30분 쉬면 ${S.pct}%에서 ${S.pct-d}%로 내려가요`,desc:"빠른 피로가 절반 넘게 빠지는 구간이에요.",action:"쉬러 가기",onAction:()=>go("recover"),ttl:10000}),400+n*900));n++}
+  if(!n)notify({type:"ok",title:"새 알림이 없어요",desc:"프로필에서 알림을 켤 수 있어요.",ttl:3500});
+}
+$("#bell").onclick=showNotices;
+
+/* ---------- 회복 ---------- */
+const DROP={10:4,30:8,60:13,120:19};
+const target=()=>Math.max(S.pct-DROP[S.minutes],15);
+const T={total:1800,left:1800,run:false,h:null,from:55,to:47};
+function fmt(s){return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+function paintTimer(){
+  $("#clock").textContent=fmt(T.left);
+  setArc("timerRing",(T.total-T.left)/T.total,true);
+  const prog=(T.total-T.left)/T.total;
+  $("#timerLbl").textContent=(T.run||(T.left<T.total&&T.left>0))?`지금 ${Math.round(T.from-(T.from-T.to)*prog)}%`:(T.left===0?`지금 ${T.to}%`:`${S.minutes}분 쉬면 ${S.pct}% → ${target()}%`);
+}
+function renderMins(){
+  const box=$("#mins");box.innerHTML="";
+  Object.keys(DROP).forEach(m=>{
+    const b=document.createElement("button");b.disabled=T.run;
+    b.className=(+m===S.minutes)?"on":"";
+    b.innerHTML=`<span class="m">${m}분</span><span class="d">−${DROP[m]}%p</span><span class="t">${Math.max(S.pct-DROP[m],15)}%</span>`;
+    b.onclick=()=>{if(T.run)return;S.minutes=+m;T.total=T.left=S.minutes*60;renderMins();paintTimer()};
+    box.appendChild(b);
+  });
+}
+$("#tbtn").onclick=()=>{
+  const btn=$("#tbtn");
+  if(T.left===0){T.left=T.total;paintTimer();btn.textContent="시작";renderMins();return}
+  if(T.run){T.run=false;clearInterval(T.h);btn.textContent="계속";renderMins();return}
+  if(T.left===T.total){
+    T.from=S.pct;T.to=target();
+    notify({type:"rest",title:`${S.minutes}분 쉬면 ${T.from}%에서 ${T.to}%로 내려가요`,desc:`${T.from-T.to}%p 줄어드는 거예요. 이어폰은 빼 두세요.`,ttl:6000});
+  }
+  T.run=true;btn.textContent="일시정지";renderMins();
+  T.h=setInterval(()=>{T.left--;paintTimer();
+    if(T.left<=0){clearInterval(T.h);T.run=false;S.pct=T.to;paintHome();btn.textContent="다시 하기";renderMins();
+      notify({type:"ok",title:`잘 쉬었어요. 지금 ${S.pct}%예요`,ttl:6000})}},1000);
+};
+renderMins();paintTimer();
+
+/* ---------- 10년 뒤 ---------- */
+const AGES=[
+  {id:"now",t:"지금",d:"필터 없음",peak:0,shelf:0,note:"기준이 되는 원음이에요."},
+  {id:"keep",t:"10년 뒤",d:"지금 습관 그대로",peak:-21,shelf:-13,note:"3~6 kHz가 가장 크게 깎여요. 심벌즈와 자음이 먼저 뭉개집니다."},
+  {id:"down",t:"10년 뒤",d:"볼륨 10% 낮추면",peak:-8,shelf:-4,good:true,note:"같은 10년인데 깎이는 양이 절반 이하예요. 바꿀 수 있는 부분입니다."}
+];
+const AudioLab={ctx:null,src:null,playing:false,preset:"now",
+  build(){
+    if(this.ctx)return;
+    const C=window.AudioContext||window.webkitAudioContext;this.ctx=new C();
+    const sr=this.ctx.sampleRate,dur=2.4,buf=this.ctx.createBuffer(1,Math.floor(sr*dur),sr),d=buf.getChannelData(0),notes=[196,261.63,329.63,392];
+    for(let i=0;i<d.length;i++){const t=i/sr;let v=0;
+      notes.forEach((f,ni)=>{const env=Math.min(1,(t-ni*.12)*6)*Math.exp(-Math.max(0,t-ni*.12)*.45);if(env<=0)return;
+        for(let n=1;n<=10;n++)v+=Math.sin(2*Math.PI*f*n*t)/(n*1.35)*.03*env});
+      const k=Math.floor(t/.3),ht=t-k*.3;if(ht<.09)v+=(Math.random()*2-1)*Math.exp(-ht*46)*.34;
+      d[i]=Math.max(-1,Math.min(1,v));}
+    this.buf=buf;
+    this.peak=this.ctx.createBiquadFilter();this.peak.type="peaking";this.peak.frequency.value=4000;this.peak.Q.value=1.15;
+    this.shelf=this.ctx.createBiquadFilter();this.shelf.type="highshelf";this.shelf.frequency.value=6300;
+    this.gain=this.ctx.createGain();this.gain.gain.value=.5;
+    this.peak.connect(this.shelf);this.shelf.connect(this.gain);this.gain.connect(this.ctx.destination);
+  },
+  set(id){this.preset=id;if(!this.ctx)return;const p=AGES.find(a=>a.id===id),n=this.ctx.currentTime;
+    this.peak.gain.setTargetAtTime(p.peak,n,.05);this.shelf.gain.setTargetAtTime(p.shelf,n,.05)},
+  toggle(){
+    this.build();if(this.ctx.state==="suspended")this.ctx.resume();
+    if(this.playing){try{this.src.stop()}catch(e){}this.playing=false}
+    else{const s=this.ctx.createBufferSource();s.buffer=this.buf;s.loop=true;s.connect(this.peak);s.start();this.src=s;this.playing=true;this.set(this.preset)}
+    return this.playing;},
+  stop(){if(this.playing){try{this.src.stop()}catch(e){}this.playing=false;const p=$("#play");p.textContent="▶  재생";p.classList.remove("ghost")}}
+};
+function eqCurve(active){
+  const w=340,h=120,L=30,fmin=Math.log10(200),fmax=Math.log10(16000),gmin=-28,gmax=6;
+  const X=f=>L+(Math.log10(f)-fmin)/(fmax-fmin)*(w-L-4),Y=g=>h-(g-gmin)/(gmax-gmin)*h;
+  let s=`<svg viewBox="0 0 ${w} ${h+20}" width="100%">`;
+  [0,-10,-20].forEach(g=>{s+=`<line class="grid" x1="${L}" x2="${w-4}" y1="${Y(g)}" y2="${Y(g)}"/><text class="axl" x="${L-6}" y="${Y(g)+3}" text-anchor="end">${g}</text>`});
+  s+=`<line x1="${X(4000)}" x2="${X(4000)}" y1="0" y2="${h}" stroke-dasharray="3 3" style="stroke:var(--hot);opacity:.5"/>`;
+  const COL={now:"var(--dimmer)",keep:"var(--hot)",down:"var(--teal)"};
+  AGES.forEach(a=>{const on=a.id===active;let d="";
+    for(let i=0;i<=120;i++){const f=Math.pow(10,lerp(fmin,fmax,i/120));
+      const pk=a.peak*Math.exp(-Math.pow(Math.log2(f/4000)/.62,2)),sf=a.shelf/(1+Math.pow(6300/f,3));
+      d+=(i?" L":"M")+X(f).toFixed(1)+","+Y(Math.max(gmin,pk+sf)).toFixed(1)}
+    s+=`<path d="${d}" fill="none" style="stroke:${COL[a.id]}" stroke-width="${on?3:1.4}" stroke-linejoin="round" opacity="${on?1:.3}"/>`});
+  [["500",500],["1k",1000],["4k",4000],["8k",8000]].forEach(([l,f])=>{s+=`<text class="axl ${f===4000?"hot":""}" x="${X(f)}" y="${h+15}" text-anchor="middle">${l}</text>`});
+  return s+"</svg>";
+}
+(function(){
+  let cur="now";const seg=$("#seg");
+  function paint(){$("#eq").innerHTML=eqCurve(cur);$("#eqnote").textContent=AGES.find(a=>a.id===cur).note;
+    [...seg.children].forEach(b=>b.classList.toggle("on",b.dataset.id===cur))}
+  AGES.forEach(a=>{const b=document.createElement("button");b.className=a.good?"good":"";b.dataset.id=a.id;
+    b.innerHTML=`<span class="t">${a.t}</span><span class="d">${a.d}</span>`;
+    b.onclick=()=>{cur=a.id;AudioLab.set(a.id);paint()};seg.appendChild(b)});
+  paint();
+  const play=$("#play");
+  play.onclick=()=>{const on=AudioLab.toggle();play.textContent=on?"■  정지":"▶  재생";play.classList.toggle("ghost",on)};
+})();
+
+/* ---------- 리포트 ---------- */
+(function(){
+  const days=["월","화","수","목","금","토","일"],rows=12;
+  const wd=[0,0,0,.04,.30,.16,.10,.18,.34,.62,.80,.42],we=[.18,.05,0,0,.08,.26,.44,.52,.60,.86,1,.66];
+  let h=`<div></div>`+days.map((d,i)=>`<div class="d ${i>=5?"we":""}">${d}</div>`).join("");
+  for(let y=0;y<rows;y++){h+=`<div class="t">${y%3===0?y*2+"시":""}</div>`;
+    for(let x=0;x<7;x++){let v=(x>=5?we[y]:wd[y])*(.82+((x*5+y*7)%7)/22);if(x===4&&y>=9)v=Math.min(1,v+.28);v=Math.min(1,v);
+      h+=v<.04?`<div class="c"></div>`:`<div class="c" style="background:var(--hot);opacity:${(.14+v*.86).toFixed(2)}"></div>`}}
+  $("#heat").innerHTML=h;
+  const C=[["게임",62,"var(--hot)"],["음악",24,"var(--amber)"],["영상",9,"var(--teal)"],["통화",5,"var(--blue)"]];
+  $("#stack").innerHTML=C.map(c=>`<div style="width:${c[1]}%;background:${c[2]}"></div>`).join("");
+  $("#stackLg").innerHTML=C.map(c=>`<span><i style="background:${c[2]}"></i>${c[0]} ${c[1]}%</span>`).join("");
+  const V=[52,52,53,52,54,53,55,54,56,57,56,58,59,58,60,61,60,62,63,64],w=340,vh=100,mn=48,mx=66;
+  const px=i=>i/(V.length-1)*w,py=v=>vh-(v-mn)/(mx-mn)*vh;
+  const line=V.map((v,i)=>(i?"L":"M")+px(i).toFixed(1)+","+py(v).toFixed(1)).join(" ");
+  $("#vol").innerHTML=`<svg viewBox="0 0 ${w} ${vh+22}" width="100%">
+   <defs><linearGradient id="vg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E2542E" stop-opacity=".3"/><stop offset="1" stop-color="#E2542E" stop-opacity="0"/></linearGradient></defs>
+   <line class="grid" x1="0" x2="${w}" y1="${vh*.5}" y2="${vh*.5}"/>
+   <path d="${line} L${w},${vh} L0,${vh}Z" fill="url(#vg)"/>
+   <path d="${line}" fill="none" style="stroke:var(--hot)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+   <circle cx="${w-3}" cy="${py(V[V.length-1])}" r="5" style="fill:var(--hot)"/>
+   <text class="axl" x="0" y="${vh+17}">3주 전</text><text class="axl" x="${w}" y="${vh+17}" text-anchor="end">이번 주</text></svg>`;
+})();
+
+/* ---------- 탭바: 탭하거나 잡고 끌어서 이동 ---------- */
+const ICON={
+  map:'<path d="M5 20V12M10 20V6M15 20V10M20 20V4"/>',
+  recover:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  home:'<path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8.5Z"/>',
+  future:'<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+  report:'<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 15l3-3 2 2 3-4"/>'
+};
+const TABS=[["map","귀 지도"],["recover","회복"],["home","오늘"],["future","10년 뒤"],["report","리포트"]];
+const track=$("#track"),lens=$("#lens");
+TABS.forEach(([id,l],i)=>{
+  const b=document.createElement("button");b.dataset.i=i;b.setAttribute("aria-label",l);
+  b.innerHTML=`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[id]}</svg><span>${l}</span>`;
+  b.addEventListener("click",e=>{if(e.detail===0)go(id)});
+  track.appendChild(b);
+});
+let cur=2,slot=0;
+const btns=()=>[...track.querySelectorAll("button")];
+function place(i,px){
+  slot=track.getBoundingClientRect().width/TABS.length;
+  lens.style.transform=px==null?`translateX(${i*slot}px)`:`translateX(${px}px) scale(1.1)`;
+}
+function go(id){
+  const i=TABS.findIndex(t=>t[0]===id);cur=i;
+  TABS.forEach(([t])=>{$("#"+t).hidden=t!==id});
+  btns().forEach((b,k)=>{b.classList.toggle("on",k===i);b.classList.remove("peek")});
+  place(i);$("#scroll").scrollTop=0;
+  if(id!=="future")AudioLab.stop();
+}
+let dragging=false,lastPx=0;
+function dragTo(e){
+  const r=track.getBoundingClientRect();slot=r.width/TABS.length;
+  lastPx=Math.max(0,Math.min(r.width-slot,e.clientX-r.left-slot/2));
+  lens.style.transform=`translateX(${lastPx}px) scale(1.1)`;
+  const k=Math.round(lastPx/slot);btns().forEach((b,j)=>b.classList.toggle("peek",j===k));
+}
+track.addEventListener("pointerdown",e=>{dragging=true;track.classList.add("drag");try{track.setPointerCapture(e.pointerId)}catch(_){}dragTo(e)});
+track.addEventListener("pointermove",e=>{if(dragging)dragTo(e)});
+function endDrag(){
+  if(!dragging)return;dragging=false;track.classList.remove("drag");
+  go(TABS[Math.round(lastPx/slot)][0]);
+}
+track.addEventListener("pointerup",endDrag);
+track.addEventListener("pointercancel",endDrag);
+window.addEventListener("resize",()=>place(cur));
+if(window.ResizeObserver)new ResizeObserver(()=>{if(!dragging)place(cur)}).observe(track);
+document.addEventListener("click",e=>{const t=e.target.closest("[data-go]");if(t)go(t.dataset.go)});
+
+/* ---------- 약관 문서 ---------- */
+const DOCS={
+terms:["이용약관",`<div class="upd">시행일 2026년 10월 19일</div>
+<h4>제1조 (목적)</h4><p>이 약관은 SafeEar 팀(이하 "팀")이 제공하는 SafeEar 앱(이하 "서비스")의 이용과 관련해 팀과 이용자 사이의 권리와 의무를 정하는 것을 목적으로 합니다.</p>
+<h4>제2조 (서비스 내용)</h4><p>서비스는 이어폰과 헤드폰 사용 습관을 바탕으로 이번 주 귀 피로도, 음역별 부담, 휴식 후 예상 변화, 장기 시나리오를 보여줍니다. 표시되는 값은 사용자의 습관을 비교하기 위한 참고 지표입니다.</p>
+<h4>제3조 (의료적 한계)</h4><p>서비스는 의료기기가 아니며 난청을 진단하거나 치료하지 않습니다. 청력이 걱정되면 이비인후과에서 검사를 받아 주세요.</p>
+<h4>제4조 (회원가입)</h4><p>만 14세 이상이며 약관과 개인정보 수집·이용에 동의한 사람이 가입할 수 있습니다. 가입 시 입력한 정보는 사실과 같아야 합니다.</p>
+<h4>제5조 (이용자의 의무)</h4><ul><li>타인의 계정을 사용하지 않습니다.</li><li>서비스를 비정상적인 방법으로 이용하지 않습니다.</li></ul>
+<h4>제6조 (서비스 변경과 중단)</h4><p>팀은 서비스 개선을 위해 기능을 바꾸거나 중단할 수 있으며, 중요한 변경은 앱 안에서 미리 알립니다.</p>
+<h4>제7조 (탈퇴)</h4><p>이용자는 언제든지 탈퇴할 수 있고, 탈퇴하면 저장된 기록은 지체 없이 삭제됩니다.</p>
+<h4>제8조 (책임의 제한)</h4><p>팀은 서비스가 보여주는 추정값을 근거로 한 판단과 그 결과에 대해, 고의 또는 중대한 과실이 없는 한 책임을 지지 않습니다.</p>`],
+privacy:["개인정보 처리방침",`<div class="upd">시행일 2026년 10월 19일</div>
+<h4>1. 수집하는 항목</h4><ul><li>필수: 이름, 이메일, 비밀번호</li><li>서비스 이용 중 생성: 나이대, 주로 쓰는 기기, 음량과 청취 시간 요약값</li></ul>
+<h4>2. 이용 목적</h4><ul><li>회원 확인과 로그인</li><li>귀 피로도와 휴식 효과 계산</li><li>알림 제공 (동의한 경우)</li></ul>
+<h4>3. 소리 녹음에 대해</h4><p>서비스는 주변 소리나 재생 중인 음악을 녹음하거나 저장하지 않습니다. 소리의 크기와 주파수 요약값만 기기 안에서 계산합니다.</p>
+<h4>4. 보유와 이용 기간</h4><p>회원 탈퇴 시 지체 없이 삭제합니다. 관련 법령에서 보관을 요구하는 정보는 그 기간 동안만 보관합니다.</p>
+<h4>5. 제3자 제공</h4><p>이용자의 동의 없이 개인정보를 외부에 제공하지 않습니다.</p>
+<h4>6. 이용자의 권리</h4><p>이용자는 언제든 자신의 정보를 보고, 고치고, 삭제해 달라고 요청할 수 있습니다. 프로필 화면에서 직접 수정하거나 아래 문의처로 연락해 주세요.</p>
+<h4>7. 만 14세 미만</h4><p>만 14세 미만은 가입할 수 없습니다.</p>
+<h4>8. 문의</h4><p>safeear@example.com</p>
+<h4>9. 동의를 거부할 권리</h4><p>필수 항목 수집에 동의하지 않을 수 있지만, 이 경우 회원가입이 제한됩니다.</p>`],
+basis:["계산 근거와 참고 자료",`<h4>권장 사용량</h4><p>ITU-T H.870 안전 청취 기준의 주간 허용 음향 선량을 바탕으로 합니다. 나이대에 따라 기준이 달라집니다.</p>
+<h4>뾰족한 소리 보정</h4><p>같은 에너지라도 총소리처럼 뾰족한 소리는 부담이 더 크다는 연구(첨도 보정)를 상대 가중치로만 반영합니다.</p>
+<h4>휴식 후 회복</h4><p>소리 노출 뒤 청력이 일시적으로 떨어졌다가 돌아오는 속도를 다룬 연구를 바탕으로, 빠른 성분과 느린 성분을 나눠 계산합니다. 쉬어도 0%까지 내려가지는 않아요.</p>
+<h4>10년 뒤 소리</h4><p>ISO 1999 예측식으로 구한 주파수별 청력 변화를 필터로 바꿔 지금 소리에 적용한 것입니다. 개인의 확정된 미래가 아니라 시나리오예요.</p>
+<h4>한계</h4><p>연구 대상은 주로 성인 노동자와 소수의 실험 참가자입니다. 청소년 이어폰 사용자에게 검증된 값이 아니므로, 절대적인 손상량이 아니라 내 습관을 비교하는 지표로 봐 주세요.</p>`],
+notmed:["의료기기가 아니에요",`<p>SafeEar는 의료기기가 아니며 난청을 진단하지 않습니다.</p>
+<h4>이 앱이 하지 않는 것</h4><ul><li>안전하다고 단정하지 않습니다.</li><li>실제 청력 수치를 재지 않습니다.</li><li>다른 사람과 점수를 비교하지 않습니다.</li></ul>
+<h4>이런 때는 병원에 가세요</h4><ul><li>귀에서 소리가 나거나 먹먹한 느낌이 오래 갈 때</li><li>시끄러운 곳에서 말이 잘 안 들릴 때</li></ul>`]
+};
+function openDoc(k){const d=DOCS[k];$("#docTitle").textContent=d[0];$("#docBody").innerHTML=d[1];$("#doc").hidden=false;$("#doc").scrollTop=0}
+$("#docBack").onclick=()=>{$("#doc").hidden=true};
+document.addEventListener("click",e=>{const t=e.target.closest("[data-doc]");if(t){e.preventDefault();openDoc(t.dataset.doc)}});
+document.addEventListener("click",e=>{const t=e.target.closest("[data-close]");if(t)$("#"+t.dataset.close).hidden=true});
+
+/* ---------- 연결된 기기 (예시 목록) ---------- */
+const DEVICES=[
+  {id:"airpods",name:"AirPods Pro 2",kind:"블루투스 이어폰",bt:true,bat:82},
+  {id:"xm5",name:"WH-1000XM5",kind:"블루투스 헤드폰",bt:true,bat:64},
+  {id:"wired",name:"유선 이어폰",kind:"3.5mm 연결",bt:false},
+  {id:"none",name:"연결 안 함",kind:"스피커로 듣는 중",none:true}
+];
+const DI={
+  bt:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10-5 5V2l5 5L7 17"/></svg>',
+  wired:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="7" rx="1.5"/><rect x="17" y="14" width="4" height="7" rx="1.5"/></svg>',
+  none:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M16.5 9a4 4 0 0 1 0 6"/></svg>'
+};
+const dIcon=d=>d.none?DI.none:d.bt?DI.bt:DI.wired;
+function paintDevice(){
+  const d=DEVICES.find(x=>x.id===S.device)||DEVICES[3];
+  const sub=d.none?d.kind:d.kind+(d.bat?` · 배터리 ${d.bat}%`:"");
+  $("#homeDev").innerHTML=`<div class="devic">${dIcon(d)}</div><div class="tx"><div class="n"></div><div class="m"></div></div><span class="pill ${d.none?"off":""}">${d.none?"연결 안 됨":"연결됨"}</span>`;
+  $("#homeDev .n").textContent=d.none?"연결된 기기가 없어요":d.name;$("#homeDev .m").textContent=sub;
+  const L=$("#devList");L.innerHTML="";
+  DEVICES.forEach(x=>{
+    const b=document.createElement("button");b.className="row"+(x.id===S.device?" sel":"");
+    b.innerHTML=`<div class="lft"><div class="devic">${dIcon(x)}</div><div><div class="n"></div><div class="m"></div></div></div><div class="radio"></div>`;
+    b.querySelector(".n").textContent=x.name;b.querySelector(".m").textContent=x.none?x.kind:x.kind+(x.bat?` · 배터리 ${x.bat}%`:"");
+    b.onclick=()=>{if(S.device===x.id)return;S.device=x.id;save();paintDevice();
+      notify({type:"ok",title:x.none?"기기 연결을 해제했어요":`${x.name}에 연결됐어요`,ttl:2800})};
+    L.appendChild(b);
+  });
+}
+$("#homeDev").onclick=()=>{paintUser();$("#profile").hidden=false;$("#profile").scrollTop=$("#devSec").offsetTop-70};
+
+/* ---------- 프로필 ---------- */
+const initial=()=>(S.user.name||"?").trim().charAt(0)||"?";
+function paintUser(){
+  $("#avBtn").textContent=initial();$("#pAv").textContent=initial();
+  $("#pHead").textContent=S.user.name||"이름 없음";$("#pMail").textContent=S.user.email;
+  $("#pName").value=S.user.name;$("#pEmail").value=S.user.email;$("#pAge").value=S.user.age;$("#pEar").value=S.user.ear;
+}
+function paintPrefs(){
+  $$(".sw").forEach(b=>b.setAttribute("aria-checked",String(!!S.prefs[b.dataset.pref])));
+  $$("#themeSeg button").forEach(b=>b.classList.toggle("on",b.dataset.themeSet===S.prefs.theme));
+  $$("#accents button").forEach(b=>b.classList.toggle("on",b.dataset.accent===S.prefs.accent));
+  const r=document.documentElement;if(S.prefs.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.prefs.theme);
+  if(S.prefs.accent==="ocean")r.removeAttribute("data-accent");else r.setAttribute("data-accent",S.prefs.accent);
+}
+$("#avBtn").onclick=()=>{paintUser();$("#profile").hidden=false;$("#profile").scrollTop=0};
+$("#pSave").onclick=()=>{
+  const n=$("#pName").value.trim();if(!n){notify({type:"warn",title:"이름을 입력해 주세요",ttl:3000});return}
+  S.user.name=n;S.user.age=$("#pAge").value;S.user.ear=$("#pEar").value;save();paintUser();
+  notify({type:"ok",title:"프로필을 저장했어요",ttl:2800});
+};
+$$(".sw").forEach(b=>b.onclick=()=>{S.prefs[b.dataset.pref]=!S.prefs[b.dataset.pref];save();paintPrefs()});
+$$("#themeSeg button").forEach(b=>b.onclick=()=>{S.prefs.theme=b.dataset.themeSet;save();paintPrefs()});
+$$("#accents button").forEach(b=>b.onclick=()=>{S.prefs.accent=b.dataset.accent;save();paintPrefs()});
+$("#toInfo").onclick=()=>{$("#info").hidden=false;$("#info").scrollTop=0};
+$("#logout").onclick=()=>{
+  S.loggedIn=false;save();AudioLab.stop();noticeTimers.forEach(clearTimeout);$("#toasts").innerHTML="";
+  $("#profile").hidden=true;$("#info").hidden=true;$("#doc").hidden=true;showAuth("login");
+};
+
+/* ---------- 로그인 · 회원가입 ---------- */
+const mailOk=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+function showAuth(mode){
+  $("#auth").hidden=false;$("#auth").scrollTop=0;
+  $$("#authTabs button").forEach(b=>b.classList.toggle("on",b.dataset.at===mode));
+  $("#fLogin").hidden=mode!=="login";$("#fSignup").hidden=mode!=="signup";
+  $("#lErr").textContent="";$("#sErr").textContent="";
+}
+$$("#authTabs button").forEach(b=>b.onclick=()=>showAuth(b.dataset.at));
+function enter(first){
+  S.loggedIn=true;save();$("#auth").hidden=true;paintUser();paintPrefs();go("home");
+  if(first)notify({type:"ok",title:`${S.user.name}님, 환영해요`,desc:"이번 주 귀 상태부터 확인해 볼까요?",ttl:3500});
+  setTimeout(showNotices,first?1200:300);
+}
+$("#fLogin").addEventListener("submit",e=>{
+  e.preventDefault();const m=$("#lEmail").value.trim(),p=$("#lPw").value;
+  if(!mailOk(m)){$("#lErr").textContent="이메일 주소를 다시 확인해 주세요.";return}
+  if(!p){$("#lErr").textContent="비밀번호를 입력해 주세요.";return}
+  if(S.user.email!==m){S.user={name:m.split("@")[0],email:m,age:"10대",ear:"무선 이어폰"}}
+  $("#lPw").value="";enter(false);
+});
+const reqBoxes=()=>$$("#fSignup input[data-req]");
+function syncAgree(){
+  $("#sBtn").disabled=!reqBoxes().every(c=>c.checked);
+  $("#agAll").checked=$$("#fSignup .ag input").filter(c=>c.id!=="agAll").every(c=>c.checked);
+}
+$("#agAll").onchange=e=>{$$("#fSignup .ag input").forEach(c=>c.checked=e.target.checked);syncAgree()};
+$$("#fSignup .ag input").forEach(c=>{if(c.id!=="agAll")c.onchange=syncAgree});
+$("#fSignup").addEventListener("submit",e=>{
+  e.preventDefault();
+  const n=$("#sName").value.trim(),m=$("#sEmail").value.trim(),p=$("#sPw").value,p2=$("#sPw2").value;
+  const err=!n?"이름을 입력해 주세요.":!mailOk(m)?"이메일 주소를 다시 확인해 주세요.":p.length<8?"비밀번호는 8자 이상으로 해 주세요.":p!==p2?"비밀번호가 서로 달라요.":"";
+  $("#sErr").textContent=err;if(err)return;
+  S.user={name:n,email:m,age:"10대",ear:"무선 이어폰"};S.prefs.warn=S.prefs.rest=S.prefs.weekly=$("#agPush").checked;
+  $("#sPw").value=$("#sPw2").value="";enter(true);
+});
+
+/* ---------- 시작 ---------- */
+paintUser();paintPrefs();paintDevice();go("home");
+requestAnimationFrame(()=>setTimeout(paintHome,120));
+if(S.loggedIn&&S.user.email){$("#auth").hidden=true;setTimeout(showNotices,900)}else{showAuth("login")}
+</script>
+
+</body></html>
