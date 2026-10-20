@@ -40,7 +40,9 @@ npm run desktop:dist   # 설치 파일 만들기 → collector-desktop/release/
 - 처음 실행하면 로그인 화면이 뜬다. 서버를 아직 설정하지 않았다면 **「로그인 없이 사용」**으로 바로 쓸 수 있다.
 - 창을 닫아도 **알림 영역(트레이)**에서 계속 측정한다. 트레이 아이콘 우클릭 → 일시정지 / 자동 실행 / 종료.
 - 설치판은 윈도우 시작 시 자동으로 트레이에서 실행된다 (설정에서 끌 수 있음).
-- 윈도우가 아닌 PC에서 화면만 보려면: `SAFEEAR_DEMO_AUDIO=1 npm run desktop` (합성 소리로 동작)
+- 윈도우가 아닌 PC에서 화면만 보려면:
+  - `npm run preview -w collector-desktop` → `collector-desktop/dist/preview.html`을 아무 브라우저로 열기 (가짜 데이터, 설치 불필요)
+  - `SAFEEAR_DEMO_AUDIO=1 npm run desktop` (Electron 앱을 합성 소리로 실행)
 
 ## 무엇을 계산하나
 

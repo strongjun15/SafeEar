@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit -p .",
     "icons": "python3 scripts/make-icons.py",
     "dist": "node scripts/build.mjs --prod && electron-builder --win --x64",
-    "dist:dir": "node scripts/build.mjs --prod && electron-builder --win --x64 --dir"
+    "dist:dir": "node scripts/build.mjs --prod && electron-builder --win --x64 --dir",
+    "preview": "node scripts/build-preview.mjs"
   },
   "devDependencies": {
     "@safeear/core": "0.1.0",
