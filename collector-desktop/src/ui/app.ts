@@ -42,52 +42,112 @@ TABS.forEach(([id, l], i) => {
   });
   track.appendChild(b);
 });
-let cur = 2, slot = 0;
+let cur = 2;
 const btns = () => [...track.querySelectorAll('button')];
-function place(i: number) {
-  slot = track.getBoundingClientRect().width / TABS.length;
-  lens.style.transform = `translateX(${i * slot}px)`;
+const LENS_INSET = 3;
+/** 렌즈: 늘 같은 요소를 두고 자리만 바꾼다 (새로 만들면 미끄러지다 끊김). jump면 전환 없이 바로 */
+function place(i: number, jump = false) {
+  const b = btns()[i];
+  if (!b || !b.offsetWidth) return;
+  const put = () => {
+    lens.style.transform = `translate(${b.offsetLeft + LENS_INSET}px,${b.offsetTop + LENS_INSET}px)`;
+    lens.style.width = `${b.offsetWidth - 2 * LENS_INSET}px`;
+    lens.style.height = `${b.offsetHeight - 2 * LENS_INSET}px`;
+  };
+  if (jump || !lens.dataset.on) {
+    lens.style.transition = 'none';
+    put();
+    void lens.offsetWidth;
+    lens.style.transition = '';
+    lens.dataset.on = '1';
+  } else put();
 }
-function go(id: string) {
+/** 탭을 바꿀 때 내용이 아래에서 살짝 떠오른다 */
+function animateTab() {
+  const app = $('#app');
+  app.removeAttribute('data-anim');
+  void app.offsetWidth;
+  app.dataset.anim = 'tab';
+  clearTimeout((animateTab as unknown as { t?: number }).t);
+  (animateTab as unknown as { t?: number }).t = window.setTimeout(() => app.removeAttribute('data-anim'), 700);
+}
+function go(id: string, anim = true) {
   const i = TABS.findIndex((t) => t[0] === id);
   if (i < 0) return;
+  const changedTab = i !== cur || !lens.dataset.on;
   cur = i;
   TABS.forEach(([t]) => ($('#' + t).hidden = t !== id));
   btns().forEach((b, k) => {
     b.classList.toggle('on', k === i);
+    b.setAttribute('aria-current', k === i ? 'page' : 'false');
     b.classList.remove('peek');
   });
   place(i);
   $('#scroll').scrollTop = 0;
   if (id !== 'future') lab.stop();
+  if (anim && changedTab) animateTab();
   lastSig = {};
   if (S) render(S);
 }
-let dragging = false, lastPx = 0;
-function dragTo(e: PointerEvent) {
-  const r = track.getBoundingClientRect();
-  slot = r.width / TABS.length;
-  lastPx = Math.max(0, Math.min(r.width - slot, e.clientX - r.left - slot / 2));
-  lens.style.transform = `translateX(${lastPx}px) scale(1.1)`;
-  const k = Math.round(lastPx / slot);
-  btns().forEach((b, j) => b.classList.toggle('peek', j === k));
-}
-track.addEventListener('pointerdown', (e) => {
-  dragging = true;
-  track.classList.add('drag');
-  try { track.setPointerCapture(e.pointerId); } catch { /* */ }
-  dragTo(e);
+// 끌어서 바꾸기: 8px 넘게 움직이면 렌즈가 손가락을 따라오고(살짝 커짐), 놓은 자리의 탭으로 바뀐다
+let drag: { x0: number; id: number; moved: boolean } | null = null;
+const nearest = (x: number) => {
+  let best = 0, bd = Infinity;
+  btns().forEach((b, k) => {
+    const r = b.getBoundingClientRect();
+    const d = Math.abs(x - (r.left + r.width / 2));
+    if (d < bd) { bd = d; best = k; }
+  });
+  return best;
+};
+track.addEventListener('pointerdown', (e) => { drag = { x0: e.clientX, id: e.pointerId, moved: false }; });
+track.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!drag.moved && Math.abs(e.clientX - drag.x0) < 8) return;
+  if (!drag.moved) {
+    drag.moved = true;
+    try { track.setPointerCapture(e.pointerId); } catch { /* */ }
+    track.classList.add('drag');
+  }
+  const L = btns(), r = track.getBoundingClientRect();
+  const x = Math.min(Math.max(e.clientX - r.left - lens.offsetWidth / 2, L[0].offsetLeft + LENS_INSET), L[L.length - 1].offsetLeft + LENS_INSET);
+  lens.style.transform = `translate(${x}px,${LENS_INSET}px) scale(1.06,1.1)`;
+  const k = nearest(e.clientX);
+  L.forEach((b, j) => b.classList.toggle('peek', j === k));
 });
-track.addEventListener('pointermove', (e) => { if (dragging) dragTo(e); });
-function endDrag() {
-  if (!dragging) return;
-  dragging = false;
+function endDrag(e: PointerEvent) {
+  if (!drag || e.pointerId !== drag.id) return;
+  drag = null;
   track.classList.remove('drag');
-  go(TABS[Math.round(lastPx / slot)][0]);
+  btns().forEach((b) => b.classList.remove('peek'));
+  go(TABS[nearest(e.clientX)][0]);
 }
 track.addEventListener('pointerup', endDrag);
-track.addEventListener('pointercancel', endDrag);
-new ResizeObserver(() => { if (!dragging) place(cur); }).observe(track);
+track.addEventListener('pointercancel', () => {
+  drag = null;
+  track.classList.remove('drag');
+  btns().forEach((b) => b.classList.remove('peek'));
+  place(cur);
+});
+new ResizeObserver(() => { if (!drag) place(cur, true); }).observe(track);
+
+// 커서를 따라가는 은은한 빛: 커서 위치를 그 요소 안 좌표(--mx, --my)로 (마우스 기기만, 프레임당 한 번)
+const GLOW = '.btn, .gbtn, .iconbtn, .herobtn, .back, .mins button, .seg button, .card.tap, .stat.tap, button.row, .dock button';
+if (matchMedia('(hover: hover)').matches) {
+  let ge: PointerEvent | null = null, raf = 0;
+  document.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    ge = e;
+    if (!raf) raf = requestAnimationFrame(() => {
+      raf = 0;
+      const el = ge?.target instanceof Element ? (ge.target.closest(GLOW) as HTMLElement | null) : null;
+      if (!el || !ge) return;
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', `${Math.round(ge.clientX - r.left)}px`);
+      el.style.setProperty('--my', `${Math.round(ge.clientY - r.top)}px`);
+    });
+  }, { passive: true });
+}
 
 document.addEventListener('click', (e) => {
   const t = e.target as HTMLElement;
@@ -246,13 +306,18 @@ const fmt = (sec: number) => String(Math.floor(sec / 60)).padStart(2, '0') + ':'
 function restPct(min: number) {
   return S?.gauge.rest.find((r) => r.min === min)?.pct ?? 0;
 }
+/** 변화가 2%p보다 작으면 소수 한 자리까지 보여 줘서 '37% → 37%'처럼 안 보이게 */
+function pctTx(from: number, to: number) {
+  const d = from - to < 2 ? 1 : 0;
+  return `${from.toFixed(d)}% → ${to.toFixed(d)}%`;
+}
 function paintTimer() {
   $('#clock').textContent = fmt(T.left);
   setArc($('#timerRing'), (T.total - T.left) / T.total);
   const now = S?.gauge.safeEarPct ?? 0;
   $('#timerLbl').textContent = T.run || (T.left < T.total && T.left > 0)
     ? `지금 ${Math.round(now)}%`
-    : T.left === 0 ? `지금 ${Math.round(now)}%` : `${T.minutes}분 쉬면 ${Math.round(now)}% → ${Math.round(restPct(T.minutes))}%`;
+    : T.left === 0 ? `지금 ${Math.round(now)}%` : `${T.minutes}분 쉬면 ${pctTx(now, restPct(T.minutes))}`;
 }
 function renderMins() {
   const box = $('#mins');
@@ -691,6 +756,6 @@ api.onNavigate((tab) => {
 });
 void api.getState().then((s) => {
   if (!s) return;
-  go('home');
+  go('home', false);
   render(s);
 });

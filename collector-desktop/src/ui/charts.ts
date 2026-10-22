@@ -20,8 +20,8 @@ export function bandColor(v: number): string {
 const RC = 2 * Math.PI * 88;
 export function ring(el: HTMLElement, center: string, label: string): void {
   el.innerHTML = `<svg viewBox="0 0 216 216" width="216" height="216">
-    <defs><linearGradient id="rg${el.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E4F6C8"/></linearGradient></defs>
-    <circle cx="108" cy="108" r="88" fill="none" stroke="rgba(255,255,255,.26)" stroke-width="16"/>
+    <defs><linearGradient id="rg${el.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".78"/></linearGradient></defs>
+    <circle cx="108" cy="108" r="88" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="16"/>
     <circle class="arc" cx="108" cy="108" r="88" fill="none" stroke="url(#rg${el.id})" stroke-width="16" stroke-linecap="round"
       stroke-dasharray="${RC}" stroke-dashoffset="${RC}" transform="rotate(-90 108 108)" style="transition:stroke-dashoffset .9s ease"/>
   </svg><div class="mid">${center}<div class="lbl">${label}</div></div>`;
