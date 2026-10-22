@@ -1,10 +1,10 @@
 /** SafeEar 화면 — main 프로세스가 1초마다 보내는 AppState를 그린다 */
-import { BAND_LABELS, type AgeBand, type HearingMode, type OutputType } from '@safeear/core';
+import { type AgeBand, type HearingMode, type OutputType } from '@safeear/core';
 import type { AppState, Result, SafeEarApi, Scenario, Settings, WaveChunk } from '../shared/types';
 import { AudioLab } from './audio-lab';
 import { barMap, bandColor, curveSvg, eqSvg, heatHtml, ring, setArc, volSvg } from './charts';
 import { DOCS } from './docs';
-import { $, $$, esc, fmtAgo, fmtDuration, notify } from './dom';
+import { $, $$, esc, fmtDuration, notify } from './dom';
 
 declare global {
   interface Window {
@@ -172,20 +172,20 @@ function openDoc(k: string) {
 $('#docBack').onclick = () => ($('#doc').hidden = true);
 
 /* ---------------- 오늘 ---------------- */
-ring($('#homeRing'), `<div class="big"><span id="homePct">0</span><small>%</small></div>`, '허용 선량 중 (SafeEar)');
+ring($('#homeRing'), `<div class="big"><span id="homePct">0</span><small>%</small></div>`, '주간 허용량');
 ring($('#timerRing'), `<div class="big" id="clock" style="font-size:50px">30:00</div>`, `<span id="timerLbl"></span>`);
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 function projectionText(s: AppState): [string, string] {
   const p = s.gauge.projection;
   const nowMin = Math.floor(Date.now() / 60000);
-  if (s.gauge.safeEarPct >= 100 || (p.minute !== null && p.minute <= nowMin)) return ['이미 넘었어요', '쉬면 내려가요'];
-  if (p.basisDays === 0) return ['데이터 모으는 중', '하루 이상 기록이 필요해요'];
-  if (p.minute === null) return ['3일 안엔 없음', '지금 습관이 이어지면'];
+  if (s.gauge.safeEarPct >= 100 || (p.minute !== null && p.minute <= nowMin)) return ['넘었어요', '100% 예상'];
+  if (p.basisDays === 0) return ['–', '100% 예상'];
+  if (p.minute === null) return ['3일 안엔 없음', '100% 예상'];
   const d = new Date(p.minute * 60000);
   const today = new Date();
   const day = d.toDateString() === today.toDateString() ? '오늘' : DOW[d.getDay()];
-  return [`${day} ${d.getHours()}시쯤`, '100%를 넘을 것으로 예상'];
+  return [`${day} ${d.getHours()}시쯤`, '100% 예상'];
 }
 
 const OUT_LABEL: Record<OutputType, string> = { headphones: '이어폰', speaker: '스피커 · 제외', unknown: '미확인' };
@@ -198,17 +198,16 @@ function renderHome(s: AppState) {
   const [pt, pl] = projectionText(s);
   $('#projTx').textContent = pt;
   $('#projLbl').textContent = pl;
-  $('#homeSub').textContent = `H.870 Mode ${g.mode} · 주간 ${g.allowancePa2h} Pa²h 기준`;
 
   // 상태 배지
   const badge = $('#badge');
   const st = L.paused ? 'paused' : L.capture.status;
   const TX: Record<string, string> = {
-    running: L.demoPaused ? '「10년 뒤」 재생 중 · 분석 잠시 멈춤' : L.counting ? '측정 중 · 이어폰 소리 분석' : '측정 중 · 소리 기다리는 중',
+    running: L.demoPaused ? '분석 잠시 멈춤' : L.counting ? '측정 중' : '소리 기다리는 중',
     starting: '측정 준비 중',
     paused: '측정 일시정지',
     stopped: '측정 멈춤',
-    error: '소리 캡처 다시 연결 중',
+    error: '다시 연결 중',
     unsupported: '윈도우에서만 측정돼요',
   };
   $('#badgeTx').textContent = TX[st] ?? st;
@@ -229,13 +228,13 @@ function renderHome(s: AppState) {
   if (changed('liveHint', hintKey)) {
     let h = '';
     if (L.capture.status === 'error' && L.capture.message) {
-      h = `<div class="hintbox"><p>소리를 받지 못하고 있어요: ${esc(L.capture.message)}</p></div>`;
+      h = `<div class="hintbox"><p>소리를 받지 못하고 있어요</p></div>`;
     } else if (L.output.id && L.output.type === 'speaker' && L.output.source === 'auto') {
-      h = `<div class="hintbox"><p>윈도우가 이 장치를 <b>스피커</b>로 알려 줘서 귀 피로도에 넣지 않고 있어요. 이어폰·헤드폰을 꽂았다면 바꿔 주세요.</p><button class="btn sm" id="markHp">이어폰이에요</button></div>`;
+      h = `<div class="hintbox"><p>스피커로 인식돼 계산에서 빠져 있어요</p><button class="btn sm" id="markHp">이어폰이에요</button></div>`;
     } else if (!v.available && L.capture.status === 'running') {
-      h = `<div class="hintbox soft"><p>윈도우 볼륨을 읽지 못해 볼륨 100%로 가정하고 있어요. 실제보다 크게 계산될 수 있어요.${v.error ? ` (${esc(v.error)})` : ''}</p></div>`;
+      h = `<div class="hintbox soft"><p>볼륨을 읽지 못해 100%로 계산 중</p></div>`;
     } else if (L.output.type === 'unknown' && L.output.id) {
-      h = `<div class="hintbox soft"><p>출력 장치 종류를 알 수 없어 이어폰으로 보고 계산하고 있어요.</p><button class="btn sm ghost" id="markSp">스피커예요</button></div>`;
+      h = `<div class="hintbox soft"><p>이어폰으로 보고 계산 중</p><button class="btn sm ghost" id="markSp">스피커예요</button></div>`;
     }
     $('#liveHint').innerHTML = h;
     const mk = (sel: string, type: OutputType) => {
@@ -248,7 +247,7 @@ function renderHome(s: AppState) {
     mk('#markSp', 'speaker');
   }
   $('#tierTx').textContent =
-    L.capture.method === 'demo' ? '데모 소리 (실제 측정 아님)' : L.capture.method === 'desktopUserMedia' ? '등급 B · 시스템 캡처 (호환 모드)' : '등급 B · 시스템 캡처';
+    L.capture.method === 'demo' ? '데모 소리' : '등급 B';
 
   // 이중 게이지 (0~120% 축)
   const ax = (p: number) => `${(Math.min(120, Math.max(0, p)) / 120) * 100}%`;
@@ -267,21 +266,20 @@ function renderHome(s: AppState) {
 
   if (changed('dev', [g.devices, s.session.signedIn, s.sync])) {
     const box = $('#devShare');
-    if (!g.devices.length) box.innerHTML = `<div class="empty">아직 이어폰으로 들은 기록이 없어요</div>`;
+    if (!g.devices.length) box.innerHTML = `<div class="empty">기록 없음</div>`;
     else box.innerHTML = g.devices.map((d) => `<div class="r"><div><div>${esc(d.name)}</div><div class="t"><i style="width:${d.pct.toFixed(1)}%;${d.isThis ? '' : 'background:var(--teal)'}"></i></div></div><div class="p">${Math.round(d.pct)}%</div></div>`).join('');
-    let line = '';
-    if (!s.session.signedIn) line = '로그인하면 휴대폰 · 태블릿 기록과 합쳐서 계산해요.';
-    else if (!s.sync.enabled) line = '동기화가 꺼져 있어요. 이 PC 기록만 보여요.';
-    else if (s.sync.error) line = `동기화 문제: ${s.sync.error}`;
-    else line = `동기화 · 올림 ${fmtAgo(s.sync.lastUploadAt)} · 받음 ${fmtAgo(s.sync.lastDownloadAt)}${s.sync.pending ? ` · 대기 ${s.sync.pending}개` : ''}${g.overlapMinutes ? ` · 겹친 ${g.overlapMinutes}분은 큰 값 사용` : ''}`;
-    $('#syncLine').textContent = line;
+    // 평소엔 아무것도 안 보이고, 할 일이 있을 때만 버튼이나 경고 한 줄
+    const sl = $('#syncLine');
+    if (!s.session.signedIn) sl.innerHTML = `<button class="btn ghost wide sm" id="syncLogin" style="margin-top:12px">다른 기기와 합치기</button>`;
+    else if (s.sync.error) sl.innerHTML = `<div class="hintbox"><p>동기화 오류</p></div>`;
+    else sl.innerHTML = '';
+    const sb = document.querySelector<HTMLElement>('#syncLogin');
+    if (sb) sb.onclick = () => showAuth('login', true);
   }
 
   if (changed('curve', g.curve)) $('#curve').innerHTML = curveSvg(g.curve);
   if (changed('mini', g.bands)) {
     $('#miniMap').innerHTML = barMap(g.bands, 320, 64, false);
-    const max = Math.max(...g.bands);
-    $('#miniMapHint').textContent = max > 0 ? `${BAND_LABELS[g.bands.indexOf(max)]}Hz 부근이 최근 7일 가장 높아요` : '이어폰으로 들으면 음역별 부담이 쌓여요';
   }
 }
 
@@ -295,9 +293,6 @@ function renderMap(s: AppState) {
   $('#meter').innerHTML = ([['저음', '125~500 Hz', avg(0, 6)], ['중음', '630~2.5k', avg(7, 13)], ['고음', '3~8 kHz', avg(14, 18)]] as const)
     .map(([n, r, v]) => `<div class="r"><div><b>${n}</b><br><em>${r}</em></div><div class="track"><div class="fill" style="width:${(v * 100).toFixed(1)}%;background:${bandColor(v)}"></div></div><div class="p">${Math.round(v * 100)}</div></div>`)
     .join('');
-  $('#coverTx').textContent = max > 0
-    ? `전체 청취 시간의 ${Math.round(g.bandCoverage * 100)}%(파형을 받은 시간) 기준으로 그렸어요. 막대는 가장 높은 대역을 100으로 맞춘 상대값이에요.`
-    : '아직 기록이 없어요.';
 }
 
 /* ---------------- 회복 ---------------- */
@@ -346,7 +341,7 @@ $('#tbtn').onclick = () => {
   if (T.left === T.total) {
     T.from = S?.gauge.safeEarPct ?? 0;
     T.warned = false;
-    notify({ type: 'rest', title: `${T.minutes}분 쉬면 ${Math.round(T.from)}%에서 ${Math.round(restPct(T.minutes))}%로 내려가요`, desc: '이어폰은 빼 두세요. 그동안 소리가 나면 알려 드릴게요.' });
+    notify({ type: 'rest', title: `${T.minutes}분 쉬면 ${pctTx(T.from, restPct(T.minutes))}` });
   }
   T.run = true;
   btn.textContent = '일시정지';
@@ -356,7 +351,7 @@ $('#tbtn').onclick = () => {
     paintTimer();
     if (S?.live.counting && !T.warned) {
       T.warned = true;
-      notify({ type: 'warn', title: '쉬는 중인데 이어폰 소리가 들려요', desc: '소리가 나는 동안은 회복 대신 다시 쌓여요.' });
+      notify({ type: 'warn', title: '쉬는 중인데 소리가 들려요' });
     }
     if (T.left <= 0) {
       clearInterval(T.h);
@@ -380,17 +375,17 @@ lab.onChange = (playing) => {
   p.textContent = playing ? '■  정지' : '▶  재생';
   p.classList.toggle('ghost', playing);
 };
-const SEG: { id: Scenario['id']; t: string; d: string; good?: boolean }[] = [
-  { id: 'now', t: '지금', d: '필터 없음' },
-  { id: 'keep', t: '10년 뒤', d: '지금 습관 그대로' },
-  { id: 'down', t: '10년 뒤', d: '볼륨 조금 낮추면 (−3 dB)', good: true },
+const SEG: { id: Scenario['id']; t: string; good?: boolean }[] = [
+  { id: 'now', t: '지금' },
+  { id: 'keep', t: '10년 뒤' },
+  { id: 'down', t: '10년 뒤 −3 dB', good: true },
 ];
 let segCur: Scenario['id'] = 'keep';
 SEG.forEach((a) => {
   const b = document.createElement('button');
   b.className = a.good ? 'good' : '';
   b.dataset.id = a.id;
-  b.innerHTML = `<span class="t">${a.t}</span><span class="d">${a.d}</span>`;
+  b.innerHTML = `<span class="t">${a.t}</span>`;
   b.onclick = () => {
     segCur = a.id;
     lastSig.future = '';
@@ -404,7 +399,7 @@ $('#play').onclick = () => lab.toggle();
   if (!f) return;
   try {
     await lab.loadFile(f);
-    notify({ title: `「${f.name}」로 들어요`, desc: '파일은 이 PC 안에서만 재생돼요.' });
+    notify({ title: `「${f.name}」로 들어요` });
   } catch {
     notify({ type: 'warn', title: '이 파일은 재생할 수 없어요' });
   }
@@ -415,21 +410,15 @@ function renderFuture(s: AppState) {
   [...$('#seg').children].forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.id === segCur));
   const sc = iso.scenarios.find((x) => x.id === segCur) ?? null;
   lab.setScenario(sc);
-  $('#eq').innerHTML = iso.scenarios.length ? eqSvg(iso.scenarios, segCur) : `<div class="empty">이어폰으로 들은 기록이 생기면 계산해요</div>`;
+  $('#eq').innerHTML = iso.scenarios.length ? eqSvg(iso.scenarios, segCur) : `<div class="empty">기록 없음</div>`;
   const at4k = (id: Scenario['id']) => iso.scenarios.find((x) => x.id === id)?.points.find((p) => p.freq === 4000)?.db ?? 0;
-  const NOTE: Record<Scenario['id'], string> = {
-    now: '기준이 되는 원음이에요.',
-    keep: iso.lex8h == null ? '' : at4k('keep') < 0.5
-      ? '지금 수준이면 ISO 1999 식으로는 10년 뒤 소음으로 인한 변화가 거의 없어요. (노화로 인한 변화는 따로예요)'
-      : `4 kHz가 약 ${at4k('keep').toFixed(1)} dB 깎여요. 심벌즈와 자음이 먼저 흐려집니다.`,
-    down: iso.lex8h == null ? '' : `같은 10년인데 4 kHz 변화가 ${at4k('down').toFixed(1)} dB예요. 바꿀 수 있는 부분이에요.`,
-  };
-  $('#eqnote').textContent = NOTE[segCur];
+  const k4 = (id: Scenario['id']) => (at4k(id) < 0.5 ? '4 kHz 변화 거의 없음' : `4 kHz −${at4k(id).toFixed(1)} dB`);
+  $('#eqnote').textContent = iso.lex8h == null || segCur === 'now' ? '' : k4(segCur);
   if (iso.lex8h == null) {
-    $('#isoHint').textContent = '이어폰으로 들은 기록이 쌓이면 계산해요';
+    $('#isoHint').textContent = '';
     $('#isoTbl').innerHTML = '';
   } else {
-    $('#isoHint').innerHTML = `최근 기록으로 어림한 주간 노출 L<sub>EX,8h</sub> = ${iso.lex8h.toFixed(1)} dB. 성인 집단 통계식을 쓴 시나리오이고 실제 청력을 잰 값이 아니에요.`;
+    $('#isoHint').innerHTML = `L<sub>EX,8h</sub> ${iso.lex8h.toFixed(1)} dB`;
     const keep = iso.scenarios.find((x) => x.id === 'keep')!.points;
     const down = iso.scenarios.find((x) => x.id === 'down')!.points;
     $('#isoTbl').innerHTML = `<tr><th>주파수</th>${keep.map((p) => `<th>${p.freq >= 1000 ? p.freq / 1000 + 'k' : p.freq}</th>`).join('')}</tr>
@@ -448,7 +437,6 @@ function renderReport(s: AppState) {
     const COL = ['var(--hot)', 'var(--amber)', 'var(--teal)', 'var(--blue)'];
     $('#stack').innerHTML = g.apps.length ? g.apps.map((c, i) => `<div style="width:${c.pct}%;background:${COL[i % 4]}"></div>`).join('') : '';
     $('#stackLg').innerHTML = g.apps.map((c, i) => `<span><i style="background:${COL[i % 4]}"></i>${esc(c.label)} ${Math.round(c.pct)}%</span>`).join('');
-    $('#stackHint').textContent = g.apps.length ? `최근 7일 부담의 ${Math.round(g.apps[0].pct)}%가 ${g.apps[0].label}에서 왔어요` : '아직 기록이 없어요';
   }
   if (changed('vol', g.volumeTrend)) $('#vol').innerHTML = volSvg(g.volumeTrend);
 }
@@ -465,7 +453,7 @@ function renderProfile(s: AppState, force = false) {
   $('#avBtn').textContent = u ? initial(u.name) : '?';
   $('#pAv').textContent = u ? initial(u.name) : '?';
   $('#pHead').textContent = u ? u.name : '로그인하지 않음';
-  $('#pMail').textContent = u ? `${u.email ?? ''}${u.provider === 'google' ? ' · Google' : ''}` : '이 PC 안에서만 기록해요';
+  $('#pMail').textContent = u ? `${u.email ?? ''}${u.provider === 'google' ? ' · Google' : ''}` : '';
   $('#pLoginCard').hidden = !!u;
   $('#pNameField').hidden = !u;
   $('#accountActions').hidden = !u;
@@ -486,15 +474,14 @@ function renderProfile(s: AppState, force = false) {
 function renderOutputs(s: AppState) {
   const outs = Object.entries(s.settings.outputs).sort((a, b) => b[1].lastSeen - a[1].lastSeen);
   const box = $('#outList');
-  if (!outs.length) { box.innerHTML = `<div class="empty">아직 확인한 출력 장치가 없어요</div>`; return; }
-  const ff = (n: number | null) => (n === 3 ? '헤드폰' : n === 5 ? '헤드셋' : n === 1 ? '스피커' : n === 9 ? '디스플레이(HDMI)' : n === 2 ? '라인 출력' : '알 수 없음');
+  if (!outs.length) { box.innerHTML = `<div class="empty">없음</div>`; return; }
+  const ff = (n: number | null) => (n === 3 || n === 5 || n === 6 ? '이어폰' : n === 1 || n === 2 || n === 8 || n === 9 ? '스피커' : '미확인');
   box.innerHTML = outs.map(([id, o]) => `<div class="outcard" data-out="${esc(id)}">
-    <div class="n">${esc(o.name)}${id === s.live.output.id ? ' · 지금 사용 중' : ''}</div>
-    <div class="m">윈도우가 알려 준 종류: ${ff(o.formFactor)}</div>
+    <div class="n">${esc(o.name)}${id === s.live.output.id ? ' · 사용 중' : ''}</div>
     <div class="inline">
-      <select data-k="type"><option value="">자동</option><option value="headphones"${o.type === 'headphones' ? ' selected' : ''}>이어폰·헤드폰</option><option value="speaker"${o.type === 'speaker' ? ' selected' : ''}>스피커 (집계 제외)</option></select>
+      <select data-k="type"><option value="">자동 (${ff(o.formFactor)})</option><option value="headphones"${o.type === 'headphones' ? ' selected' : ''}>이어폰·헤드폰</option><option value="speaker"${o.type === 'speaker' ? ' selected' : ''}>스피커</option></select>
       <input data-k="ref" type="number" min="70" max="140" step="1" placeholder="${s.settings.defaultRefSplDb}" value="${o.refSplDb ?? ''}" title="볼륨 100%에서 0 dBFS가 내는 dBA (교정값)">
-      <span style="font-size:12px;color:var(--dim)">dBA 기준</span>
+      <span>dBA</span>
     </div></div>`).join('');
   box.querySelectorAll<HTMLElement>('.outcard').forEach((card) => {
     const id = card.dataset.out!;
@@ -511,19 +498,17 @@ function renderOutputs(s: AppState) {
 async function loadDevices() {
   const list = $('#devList');
   if (!S?.session.signedIn) {
-    list.innerHTML = `<div class="empty">로그인하면 같은 계정의 기기 목록이 보여요</div>`;
-    $('#devNote').textContent = '';
+    list.innerHTML = `<div class="empty">로그인 필요</div>`;
     return;
   }
-  list.innerHTML = `<div class="empty">불러오는 중…</div>`;
+  list.innerHTML = `<div class="empty">…</div>`;
   const r = await api.listDevices();
   if (!r.ok) { list.innerHTML = `<div class="empty">${esc(r.error)}</div>`; return; }
   const ICON_DEV = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>';
   const PHONE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>';
   list.innerHTML = r.data.length
-    ? r.data.map((d) => `<div class="row"><div class="lft"><div class="devic">${d.platform === 'windows' || d.platform === 'mac' ? ICON_DEV : PHONE}</div><div><div class="n">${esc(d.name)}</div><div class="m">${esc(d.platform ?? '')} · 마지막 ${d.last_seen_at ? new Date(d.last_seen_at).toLocaleString('ko-KR') : '–'}</div></div></div></div>`).join('')
-    : `<div class="empty">등록된 기기가 없어요</div>`;
-  $('#devNote').textContent = '휴대폰 · 태블릿 앱이 나오면 같은 계정으로 로그인해 여기에 추가돼요.';
+    ? r.data.map((d) => `<div class="row"><div class="lft"><div class="devic">${d.platform === 'windows' || d.platform === 'mac' ? ICON_DEV : PHONE}</div><div><div class="n">${esc(d.name)}</div><div class="v">${d.last_seen_at ? new Date(d.last_seen_at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : ''}</div></div></div></div>`).join('')
+    : `<div class="empty">없음</div>`;
 }
 function openProfile(scrollTo?: string) {
   if (!S) return;
@@ -573,7 +558,7 @@ $('#logout').onclick = async () => {
 };
 $('#deleteAcc').onclick = async () => {
   const r = await api.deleteAccount();
-  if (r.ok) { $('#profile').hidden = true; notify({ title: '탈퇴했어요', desc: '서버의 계정과 기록을 지웠어요.' }); }
+  if (r.ok) { $('#profile').hidden = true; notify({ title: '탈퇴했어요' }); }
   else if (r.error !== '취소했어요.') notify({ type: 'warn', title: r.error });
 };
 $('#pauseBtn').onclick = () => void api.setPaused(!S?.settings.paused);
@@ -685,7 +670,7 @@ function renderAuth(s: AppState) {
   if (needAuth && $('#auth').hidden) showAuth('login');
   if (ss.signedIn && !$('#auth').hidden) $('#auth').hidden = true;
   if (!needAuth && !authForced && !$('#auth').hidden) $('#auth').hidden = true;
-  if (wasSignedIn === false && ss.signedIn) notify({ title: `${ss.user?.name ?? ''}님, 환영해요`, desc: '이제 다른 기기 기록과 합쳐서 계산해요.' });
+  if (wasSignedIn === false && ss.signedIn) notify({ title: `${ss.user?.name ?? ''}님, 환영해요` });
   wasSignedIn = ss.signedIn;
 }
 
