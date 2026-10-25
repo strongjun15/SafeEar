@@ -1,3 +1,4 @@
+import snailUrl from './assets/snail-map-cartoon.png';
 /** 인라인 SVG 차트 (외부 차트 라이브러리 없이 — 계획서 부록 A) */
 import { BAND_LABELS } from '@safeear/core';
 import type { CurvePoint } from '@safeear/core';
@@ -73,13 +74,14 @@ export function curveSvg(pts: CurvePoint[]): string {
   a += ` L${w},${h}Z`;
   b += ` L${w},${h}Z`;
   const last = pts[pts.length - 1];
+  const time = (m: number) => new Date(m * 60000).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
   return `<svg viewBox="0 0 ${w} ${h + 22}" width="100%">
    <line class="grid" x1="0" x2="${w}" y1="${h * 0.5}" y2="${h * 0.5}"/>
    <path d="${a}" style="fill:var(--amber);fill-opacity:.28;stroke:var(--amber)" stroke-width="2.4" stroke-linejoin="round"/>
    <path d="${b}" style="fill:var(--blue);fill-opacity:.2;stroke:var(--blue)" stroke-width="2" stroke-linejoin="round"/>
    <circle cx="${w}" cy="${Y(last.fast + last.slow)}" r="4.5" style="fill:var(--amber)"/>
    <line class="grid" x1="0" x2="${w}" y1="${h}" y2="${h}"/>
-   <text class="axl" x="0" y="${h + 16}">8시간 전</text><text class="axl" x="${w / 2}" y="${h + 16}" text-anchor="middle">4시간 전</text><text class="axl" x="${w}" y="${h + 16}" text-anchor="end">지금</text></svg>`;
+   <text class="axl" x="0" y="${h + 16}">${time(pts[0].minute)}</text><text class="axl" x="${w / 2}" y="${h + 16}" text-anchor="middle">${time(pts[Math.floor(pts.length / 2)].minute)}</text><text class="axl" x="${w}" y="${h + 16}" text-anchor="end">지금</text></svg>`;
 }
 
 /** ISO 1999 주파수별 NIPTS를 로그 주파수로 이어 EQ 게인(−N)으로 */
@@ -150,4 +152,48 @@ export function volSvg(trend: { day: string; avg: number }[]): string {
    <path d="${line}" fill="none" style="stroke:var(--hot)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
    <circle cx="${w - 3}" cy="${py(V[V.length - 1])}" r="5" style="fill:var(--hot)"/>
    <text class="axl" x="0" y="${vh + 17}">${trend[0].day}</text><text class="axl" x="${w}" y="${vh + 17}" text-anchor="end">${trend[trend.length - 1].day} · ${Math.round(V[V.length - 1])}%</text></svg>`;
+}
+
+/** A schematic cochlea: high frequencies at the outer base, low frequencies at the inner tip. */
+export function cochleaSvg(values: number[]): string {
+  const maximum = Math.max(0, ...values);
+  const color = (v: number) => maximum === 0 ? 'var(--line)' : v / maximum < .33 ? '#2468ce' : v / maximum < .66 ? '#c66608' : '#c43c25';
+  const point = (t: number) => { const angle = t * Math.PI * 4.8 + .22; const radius = 73 - t * 62; return [151 + radius * Math.cos(angle), 112 + radius * Math.sin(angle) * .88]; };
+  let segments = '';
+  for (let i = 0; i < 19; i++) {
+    const band = 18 - i;
+    let path = '';
+    for (let k = 0; k <= 16; k++) { const [x, y] = point((i + k / 16) / 19); path += `${k ? ' L' : 'M'}${x.toFixed(2)},${y.toFixed(2)}`; }
+    segments += `<path d="${path}" fill="none" stroke="${color(values[band] ?? 0)}" stroke-width="9" stroke-linecap="round"><title>${BAND_LABELS[band]} Hz</title></path>`;
+  }
+  return `<svg viewBox="0 0 350 233" role="img" aria-label="귀여운 달팽이의 등껍질에 표시한 소리별 청취 부담 지도">
+    <image href="${snailUrl}" x="0" y="0" width="350" height="233"/>
+    <g opacity=".85">${segments}</g>
+    <path d="M100 68L145 108M257 175L219 134" fill="none" stroke="var(--ink)" stroke-width="1.3"/>
+    <circle cx="145" cy="108" r="2.5" fill="var(--ink)"/><circle cx="219" cy="134" r="2.5" fill="var(--ink)"/>
+    <rect x="44" y="44" width="104" height="25" rx="9" fill="var(--solid)" stroke="var(--line)"/><text x="96" y="61" text-anchor="middle" fill="currentColor" font-size="11" font-weight="700">안쪽: 낮은 소리</text>
+    <rect x="209" y="174" width="108" height="25" rx="9" fill="var(--solid)" stroke="var(--line)"/><text x="263" y="191" text-anchor="middle" fill="currentColor" font-size="11" font-weight="700">바깥: 높은 소리</text>
+  </svg>`;
+}
+
+/** Compare both existing ten-year scenarios without changing prediction values. */
+export function hearingCompareSvg(scenarios: Scenario[]): string {
+  const keep = scenarios.find(s => s.id === 'keep'), down = scenarios.find(s => s.id === 'down');
+  if (!keep || !down) return '<div class="empty">청취 기록이 쌓이면 두 가지 습관을 비교할 수 있어요.</div>';
+  const w = 352, h = 258, left = 36, right = 334, top = 34, bottom = 210;
+  const maximum = Math.max(5, Math.ceil(Math.max(...keep.points.map(p => p.db), ...down.points.map(p => p.db)) / 5) * 5);
+  const x = (frequency: number) => left + Math.log(frequency / 500) / Math.log(6000 / 500) * (right - left);
+  const y = (value: number) => bottom - value / maximum * (bottom - top);
+  let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="10년 뒤 같은 소리를 듣기 위해 더 필요한 음량 비교. 높을수록 더 큰 소리가 필요해요. 주황 실선은 현재 습관 유지, 청록 점선은 음량을 3 dB 낮춘 경우."><text x="${left}" y="16" class="hearing-svg-label">청력 역치 상승 (dB)</text>`;
+  for (let i = 0; i <= 4; i++) {
+    const value = maximum * i / 4;
+    svg += `<line x1="${left}" x2="${right}" y1="${y(value)}" y2="${y(value)}" stroke="var(--line)"/><text x="${left - 8}" y="${y(value) + 4}" text-anchor="end" class="hearing-svg-label">${Number(value.toFixed(1))}</text>`;
+  }
+  for (const [scenario, color, dashed] of [[keep, '#cb601b', false], [down, '#087f83', true]] as const) {
+    const path = scenario.points.map((p, i) => `${i ? 'L' : 'M'}${x(p.freq).toFixed(2)},${y(p.db).toFixed(2)}`).join(' ');
+    svg += `<path d="${path}" fill="none" stroke="${color}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"${dashed ? ' stroke-dasharray="6 5"' : ''}/>`;
+    scenario.points.forEach(p => { svg += `<circle cx="${x(p.freq)}" cy="${y(p.db)}" r="3.5" fill="var(--solid)" stroke="${color}" stroke-width="2"><title>${p.freq} Hz: ${p.db.toFixed(1)} dB</title></circle>`; });
+  }
+  for (const [label, frequency] of [['500', 500], ['1k', 1000], ['2k', 2000], ['4k', 4000], ['6k', 6000]] as const) svg += `<text x="${x(frequency)}" y="${bottom + 20}" text-anchor="middle" class="hearing-svg-label">${label}</text>`;
+  return svg + `<text x="${left}" y="254" class="hearing-svg-label">낮은 소리</text><text x="${right}" y="254" text-anchor="end" class="hearing-svg-label">높은 소리 (Hz)</text></svg>`;
 }

@@ -1,3 +1,4 @@
+import { buildReport } from '../shared/report';
 /**
  * 브라우저 미리보기용 가짜 main 프로세스.
  * 윈도우가 아닌 곳에서 화면(껍데기)을 확인하려고, 6일치 합성 청취 기록을 만들어 core의 같은 계산으로 게이지를 그린다.
@@ -20,6 +21,11 @@ import {
   type MinuteRecord,
 } from '@safeear/core';
 import type { AppState, RemoteDevice, Result, SafeEarApi, Settings, WaveChunk } from '../shared/types';
+
+const DEMO_EMAIL = 'test11';
+const DEMO_PASSWORD = 'test11';
+const isDemo = () => session_.signedIn && session_.user?.id === 'preview-demo';
+const unavailable = async (): Promise<Result<never>> => ({ ok: false, error: '계정 서버 연결이 필요해요. 실제 계정 로그인과 이메일 인증은 앱의 서버 설정 후 사용할 수 있어요.' });
 
 type Rec = MinuteRecord;
 const THIS = 'this-pc', PHONE = 'my-phone', PAD = 'my-pad';
@@ -103,6 +109,7 @@ const settings: Settings = {
     'out-1': { name: '헤드폰 (Galaxy Buds3 Pro)', formFactor: 3, lastSeen: Date.now() },
     'out-2': { name: '스피커 (Realtek(R) Audio)', formFactor: 1, lastSeen: Date.now() - 86400000 },
   },
+  age: 17,
   ageBand: '14-17',
   mode: 2,
   syncEnabled: true,
@@ -113,9 +120,13 @@ const settings: Settings = {
   theme: 'auto',
   accent: 'ocean',
   localOnlyChosen: false,
+  notificationConsent: false,
 };
 
-let session_: AppState['session'] = { configured: true, signedIn: false, localOnly: false, user: null, recovery: false };
+const initialSettings = structuredClone(settings);
+const accountSettings = new Map<string, Settings>();
+
+let session_: AppState['session'] = { configured: false, signedIn: false, localOnly: false, user: null, recovery: false };
 let demoPaused = false;
 let t = 0;
 
@@ -128,7 +139,7 @@ function gauge(): AppState['gauge'] {
   const allowance = weeklyAllowance(mode);
   const pct = (x: number) => (x / allowance) * 100;
   const signed = session_.signedIn;
-  const all = [...history, ...liveRecs].filter((r) => signed || r.device_id === THIS);
+  const all = isDemo() ? [...history, ...liveRecs] : [];
   const merged = mergeRecords(all);
   const st = integrate(merged.values(), now);
   const se = st.fast + st.slow + st.residual;
@@ -153,10 +164,13 @@ function gauge(): AppState['gauge'] {
   const start = new Date(day0); start.setDate(start.getDate() - 6);
   const DOW = ['일', '월', '화', '수', '목', '금', '토'];
   const heatDays = Array.from({ length: 7 }, (_, i) => DOW[new Date(start.getTime() + i * 86400000).getDay()]);
+  const todayHours = new Array<number>(24).fill(0);
+  const weekDays = heatDays.map((day, i) => { const d = new Date(start); d.setDate(d.getDate() + i); return { date: `${d.getMonth()+1}/${d.getDate()}`, day, listenSec: 0 }; });
   for (const m of merged.values()) {
     const dt = new Date(m.minute * 60000);
+    if (dt.getTime() >= day0.getTime()) todayHours[dt.getHours()] += m.listenSeconds;
     const di = Math.round((new Date(dt).setHours(0, 0, 0, 0) - start.getTime()) / 86400000);
-    if (di >= 0 && di < 7) heat[di][Math.floor(dt.getHours() / 2)] += m.kurt;
+    if (di >= 0 && di < 7) { heat[di][Math.floor(dt.getHours() / 2)] += m.kurt; weekDays[di].listenSec += m.listenSeconds; }
   }
   const byLabel = new Map<string, number>();
   for (const r of all) {
@@ -174,6 +188,14 @@ function gauge(): AppState['gauge'] {
     c.s += r.volume_index ?? 0; c.n++;
     vt.set(k, c);
   }
+  const todayByApp = new Map<string, number>();
+  for (const r of all) {
+    if (new Date(r.minute_start).getTime() < day0.getTime()) continue;
+    const label = r.device_id === THIS ? r.app_name ?? '기타' : `다른 기기 · ${LABEL[r.content_label ?? 'other']}`;
+    todayByApp.set(label, (todayByApp.get(label) ?? 0) + (r.dose_kurt ?? r.dose_eeh));
+  }
+  const todayTotal = [...todayByApp.values()].reduce((a, b) => a + b, 0);
+  const todayApps = [...todayByApp].map(([label, value]) => ({ label, pct: todayTotal > 0 ? value / todayTotal * 100 : 0 })).sort((a, b) => b.pct - a.pct);
   const span = Math.max(1, Math.min(7, (now - first) / 1440));
   const lex8h = st.weeklyEeh > 0 ? lex8hFromWeeklyDose((st.weeklyEeh * 7) / span) : null;
   const p = projectCrossing(merged.values(), now, allowance);
@@ -189,12 +211,15 @@ function gauge(): AppState['gauge'] {
     projection: { minute: p.minute, basisDays: p.basisDays },
     todayListenSec: todaySec,
     todayPct: pct(todayKurt),
-    curve: fatigueCurve(merged.values(), now - 480, now, 5).map((c) => ({ minute: c.minute, fast: pct(c.fast), slow: pct(c.slow) })),
+    curve: fatigueCurve(merged.values(), minuteOfMs(day0.getTime()), now, 5).map((c) => ({ minute: c.minute, fast: pct(c.fast), slow: pct(c.slow) })),
     bands,
     bandCoverage: 1,
     devices,
     heat,
     heatDays,
+    weekDays,
+    todayHours,
+    todayApps,
     apps,
     volumeTrend: [...vt.entries()].map(([day, x]) => ({ day, avg: x.s / x.n })),
     iso: lex8h == null ? { lex8h: null, scenarios: [] } : {
@@ -213,10 +238,17 @@ function gauge(): AppState['gauge'] {
 let curGauge = gauge();
 let lastMinute = minuteOfMs(Date.now());
 function live(): AppState['live'] {
-  const loud = !settings.paused && !demoPaused;
+  if (!isDemo()) return {
+    capture: { status: 'unsupported', message: '브라우저 테스트에서는 실제 소리를 측정하지 않아요.' },
+    paused: settings.paused, demoPaused: false,
+    volume: { available: false, deviceId: null, deviceName: null, formFactor: null, scalar: null, db: null, muted: false, sessions: [], t: Date.now() },
+    output: { id: null, name: null, type: 'unknown', source: 'auto', autoType: 'unknown' },
+    app: null, splA: null, dbfsA: null, beta: null, kurtWeight: 1, counting: false, calibrationId: 'none', refSplDb: 105,
+  };
+  const loud = isDemo() && !settings.paused && !demoPaused;
   const spl = 76 + Math.sin(t / 7) * 2.5 + (t % 9 === 0 ? 4 : 0);
   return {
-    capture: settings.paused ? { status: 'stopped' } : { status: 'running', sampleRate: 48000, channels: 2, method: 'demo' },
+    capture: !isDemo() || settings.paused ? { status: 'stopped' } : { status: 'running', sampleRate: 48000, channels: 2, method: 'demo' },
     paused: settings.paused,
     demoPaused,
     volume: { available: true, deviceId: 'out-1', deviceName: '헤드폰 (Galaxy Buds3 Pro)', formFactor: 3, scalar: 0.46, db: -13.2, muted: false, sessions: [], t: Date.now() },
@@ -236,9 +268,10 @@ function state(): AppState {
   return {
     live: live(),
     gauge: curGauge,
+
     session: { ...session_, localOnly: !session_.signedIn && settings.localOnlyChosen },
-    sync: { enabled: settings.syncEnabled, lastUploadAt: Date.now() - 40000, lastDownloadAt: Date.now() - 150000, pending: 0, error: null },
-    settings,
+    sync: { enabled: false, lastUploadAt: null, lastDownloadAt: null, pending: 0, error: null },
+    settings: isDemo() ? settings : { ...settings, outputs: {} },
     version: '0.1.0 (미리보기)',
     hostname: 'NABLA-PC',
   };
@@ -280,25 +313,41 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const after = async <T>(r: Result<T>) => { await wait(350); push(); return r; };
 
 function signIn(name: string, email: string, provider: string) {
-  session_ = { configured: true, signedIn: true, localOnly: false, user: { id: 'preview-user', name, email, provider }, recovery: false };
+  const key = provider === 'demo' ? 'preview-demo' : 'preview-test';
+  const defaults = { ...initialSettings, ...(provider === 'demo' ? {} : { age: null, ageBand: null, mode: null }) };
+  Object.assign(settings, structuredClone(accountSettings.get(key) ?? defaults));
+  session_ = { configured: false, signedIn: true, localOnly: false, user: { id: provider === 'demo' ? 'preview-demo' : 'preview-test', name, email, provider }, recovery: false };
   curGauge = gauge();
 }
 
-const api: SafeEarApi & { setPaused(p: boolean): Promise<void> } = {
+export const demoApi: SafeEarApi & { setPaused(p: boolean): Promise<void> } = {
+  getReport: async (date, view) => ok(buildReport(isDemo() ? [...history, ...liveRecs] : [], date, view, resolveMode(settings.ageBand, settings.mode))),
   getState: async () => state(),
   onState: (cb) => { stateCbs.push(cb); return () => stateCbs.splice(stateCbs.indexOf(cb), 1); },
   onWave: (cb) => { waveCbs.push(cb); return () => waveCbs.splice(waveCbs.indexOf(cb), 1); },
   onNavigate: () => () => {},
-  signUp: async (p) => after(ok({ needsConfirm: true })).then((r) => { setTimeout(() => { signIn(p.name, p.email, 'email'); push(); }, 2500); return r; }),
-  signIn: async (p) => { await wait(600); signIn(p.email.split('@')[0], p.email, 'email'); return after(ok(undefined)); },
-  signInWithGoogle: async () => { await wait(1600); signIn('김나블라', 'nabla.safeear@gmail.com', 'google'); return after(ok(undefined)); },
-  resetPassword: async () => after(ok(undefined)),
-  updatePassword: async () => after(ok(undefined)),
-  signOut: async () => { session_ = { ...session_, signedIn: false, user: null }; settings.localOnlyChosen = false; curGauge = gauge(); return after(ok(undefined)); },
-  continueLocal: async () => { settings.localOnlyChosen = true; return after(ok(undefined)); },
+  signUp: unavailable,
+  signIn: async (p) => {
+    const login = p.email.trim();
+    if (login !== DEMO_EMAIL && login !== 'test') return unavailable();
+    if (p.password !== (login === 'test' ? 'test' : DEMO_PASSWORD)) return { ok: false, error: '이메일 또는 비밀번호가 맞지 않아요.' };
+    await wait(350); signIn(login === 'test' ? '테스트 사용자' : '데모 사용자', login, login === 'test' ? 'test' : 'demo'); return after(ok(undefined));
+  },
+  signInWithGoogle: unavailable,
+  requestNotifications: async () => {
+    if (!('Notification' in window)) return ok('unsupported');
+    const permission = await Notification.requestPermission();
+    settings.notificationConsent = permission === 'granted';
+    return ok(permission === 'granted' ? 'granted' : permission === 'denied' ? 'denied' : 'requested');
+  },
+  resetPassword: unavailable,
+  updatePassword: unavailable,
+  signOut: async () => { if (session_.user) accountSettings.set(session_.user.id, structuredClone(settings)); session_ = { ...session_, signedIn: false, user: null }; settings.localOnlyChosen = false; curGauge = gauge(); return after(ok(undefined)); },
+  continueLocal: unavailable,
   deleteAccount: async () => ({ ok: false, error: '미리보기에서는 탈퇴할 수 없어요.' }),
   updateProfile: async (p) => {
-    if (p.ageBand !== undefined) settings.ageBand = p.ageBand;
+    if (!session_.signedIn) return unavailable();
+    if (p.age !== undefined) { settings.age = p.age; settings.ageBand = p.age < 18 ? '14-17' : p.age < 20 ? '18-19' : p.age < 30 ? '20s' : '30plus'; }
     settings.mode = resolveMode(settings.ageBand, p.mode ?? settings.mode);
     if (p.name && session_.user) session_ = { ...session_, user: { ...session_.user, name: p.name } };
     curGauge = gauge();
@@ -306,7 +355,7 @@ const api: SafeEarApi & { setPaused(p: boolean): Promise<void> } = {
   },
   setSettings: async (p) => { Object.assign(settings, p); return after(ok(undefined)); },
   setOutput: async (id, p) => { settings.outputs[id] = { ...settings.outputs[id], ...p }; return after(ok(undefined)); },
-  listDevices: async () => { await wait(400); return ok(DEVICES); },
+  listDevices: async () => { await wait(400); return ok(isDemo() ? DEVICES : []); },
   exportData: async () => ({ ok: false, error: '미리보기에서는 파일을 내보낼 수 없어요.' }),
   clearLocalData: async () => ({ ok: false, error: '미리보기에서는 기록을 지울 수 없어요.' }),
   setDemoPlaying: async (p) => { demoPaused = p; push(); },
@@ -314,4 +363,4 @@ const api: SafeEarApi & { setPaused(p: boolean): Promise<void> } = {
   setPaused: async (p) => { settings.paused = p; push(); },
 };
 
-(window as unknown as { safeear: typeof api }).safeear = api;
+if (!window.safeear) (window as unknown as { safeear: typeof demoApi }).safeear = demoApi;

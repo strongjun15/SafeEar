@@ -143,7 +143,7 @@ export class AuthService extends EventEmitter {
     return {
       configured: this.configured,
       signedIn: !!this.session,
-      localOnly: !this.session && localOnlyChosen,
+      localOnly: false,
       user: this.userInfo(),
       recovery: this.recovery,
     };
@@ -154,7 +154,8 @@ export class AuthService extends EventEmitter {
     return this.client;
   }
 
-  async signUp(p: { name: string; email: string; password: string; marketing: boolean }): Promise<{ needsConfirm: boolean }> {
+  async signUp(p: { name: string; username: string; email: string; password: string; age: number; marketing: boolean }): Promise<{ needsConfirm: boolean }> {
+    if (!Number.isInteger(p.age) || p.age < 14 || p.age > 120) throw new Error('나이는 만 14~120세로 입력해 주세요.');
     const now = new Date().toISOString();
     const { data, error } = await this.need().auth.signUp({
       email: p.email,
@@ -163,6 +164,8 @@ export class AuthService extends EventEmitter {
         emailRedirectTo: authCallbackUrl(),
         data: {
           display_name: p.name,
+          username: p.username,
+          age: p.age,
           age_14_plus: true,
           agreed_terms_at: now,
           agreed_privacy_at: now,
@@ -177,6 +180,13 @@ export class AuthService extends EventEmitter {
       throw new Error('User already registered');
     }
     return { needsConfirm: !data.session };
+  }
+
+  async saveAge(age: number): Promise<void> {
+    if (!Number.isInteger(age) || age < 14 || age > 120) throw new Error('나이는 만 14~120세로 입력해 주세요.');
+    const { data, error } = await this.need().auth.updateUser({ data: { age } });
+    if (error) throw error;
+    if (this.session) this.session.user = data.user;
   }
 
   async signIn(email: string, password: string): Promise<void> {

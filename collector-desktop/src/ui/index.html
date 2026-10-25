@@ -6,71 +6,31 @@
 <meta name="color-scheme" content="light dark">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' blob:">
 <title>SafeEar</title>
+<link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Nunito:wght@500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="app" id="app">
-  <div class="scroll" id="scroll">
+  <div class="scroll" id="scroll"><div class="scroll-content">
+  <div class="topbtns">
+    <button class="iconbtn avatar" id="avBtn" aria-label="프로필">?</button>
+  </div>
 
-  <!-- ① 오늘 -->
   <section id="home">
-    <div class="hero pad">
-      <div class="top"><h1>최근 7일 귀 피로도</h1><button class="badge" id="badge"><i></i><span id="badgeTx">측정 준비 중</span></button>
-      </div>
-      <div class="herocard">
-        <div class="ringbox" id="homeRing"></div>
-        <div class="glass">
-          <div><b id="leftPct">–</b><span>남은 여유</span></div>
-          <div><b id="projTx">–</b><span id="projLbl">100% 예상</span></div>
-        </div>
+    <div class="hero pad"><div class="top"><h1>SAFEEAR</h1><div class="home-status"><span class="badge" id="badge"><i></i><span id="badgeTx">측정 준비 중</span></span><span class="connected-device" id="connectedDevice" aria-label="연결된 출력 기기">기기 확인 중</span></div></div>
+      <div class="herocard" id="recordCard"><div class="ringbox" id="homeRing"></div>
+        <div class="weekly-mini"><div class="weekly-mini-heading"><span>주간 청취 부담</span><b id="weeklyPct">0%</b></div><div class="allowance-track"><div id="weeklyBar"></div></div><div class="weekly-mini-forecast"><span>100% 예상</span><span id="weeklyProjection">기록이 쌓이면 표시돼요</span></div></div>
+        <div class="record-paused" id="recordPaused" role="status" hidden><h2>기록이 일시정지되었어요</h2><p>오늘 쌓인 기록은 그대로 남아 있어요.</p></div>
+        <button class="record-control" id="pauseBtn" type="button">기록 정지</button>
       </div>
     </div>
     <main class="pad">
-      <div class="card">
-        <div class="rowh"><h3>지금 들리는 소리</h3><span class="more" id="tierTx">등급 B · 시스템 캡처</span></div>
-        <canvas class="wave" id="wave" width="680" height="168"></canvas>
-        <div class="liveinfo">
-          <div><b id="liveSpl">–</b><span>추정 음량</span></div>
-          <div><b id="liveVol">–</b><span>윈도우 볼륨</span></div>
-          <div><b id="liveApp">–</b><span>재생 중인 앱</span></div>
-        </div>
-        <div class="outrow"><span class="pill off" id="outPill">출력</span><span class="n" id="outName">출력 장치 확인 중</span></div>
-        <div id="liveHint"></div>
-      </div>
+      <div class="card live-sound-card"><div class="rowh"><h3>지금 들리는 소리</h3><span id="liveSoundStatus"></span></div><div class="live-sound-reading"><span id="liveSoundLevel">–</span><span id="liveSoundRate"></span></div><div id="liveSoundSource"></div></div>
 
-      <div class="card tap" data-doc="dual">
-        <div class="rowh"><h3>두 가지 계산</h3><span class="more">?</span></div>
-        <div class="dual" id="dual"><div class="bar" id="dualBar"></div><div class="mk" id="dualMk"><b>기존</b></div>
-          <span class="tick" style="left:80%">80%</span><span class="tick" style="left:100%">100%</span></div>
-        <div class="duallg"><span>SafeEar <b id="dualSe">0%</b></span><span>기존 방식 <b id="dualStd">0%</b></span></div>
-      </div>
-
-      <div class="stats">
-        <div class="stat"><div class="k">오늘 들은 시간</div><div class="v" id="stToday">0<small>분</small></div></div>
-        <div class="stat"><div class="k">오늘 누적</div><div class="v" id="stTodayPct">0<small>%</small></div></div>
-        <div class="stat tap" data-doc="kurtosis"><div class="k">뾰족함 β</div><div class="v" id="stBeta">–</div></div>
-        <div class="stat"><div class="k">기준 모드</div><div class="v" id="stMode">Mode 2</div></div>
-      </div>
-
-      <div class="card">
-        <div class="rowh"><h3>기기별 기여</h3><span class="more tap" id="toDevices">기기 ›</span></div>
-        <div class="devshare" id="devShare"></div>
-        <div id="syncLine"></div>
-      </div>
-
-      <div class="card">
-        <h3>오늘의 피로 곡선</h3>
-        <div id="curve" style="margin-top:12px"></div>
-        <div class="legend"><span><i style="background:var(--amber)"></i>빠른 피로</span><span><i style="background:var(--blue)"></i>느린 피로</span></div>
-      </div>
-      <div class="card tap" data-go="map">
-        <div class="rowh"><h3>귀 지도</h3><span class="more">자세히 ›</span></div>
-        
-        <div id="miniMap" style="margin-top:12px"></div>
-      </div>
+      <button class="btn wide rest-action rest-warning" id="restWarning" data-go="recover" hidden>잠깐 쉬어갈 시간이에요. 회복 시작하기</button>
     </main>
   </section>
 
@@ -78,12 +38,12 @@
   <section id="map" hidden>
     <div class="hero pad"><div class="top"><h1>귀 지도</h1></div></div>
     <main class="pad">
-      <div class="card">
-        <h3>1/3 옥타브 19개 대역</h3>
-        <div id="bigMap" style="margin-top:14px"></div>
+      <div class="card ear-map-card">
+        <h3>어떤 소리에 부담이 쌓였을까요?</h3>
+        <div id="bigMap" class="cochlea-map"></div>
+        <div class="map-color-key"><span><i style="background:#2468ce"></i>상대적으로 적음</span><span><i style="background:#c66608"></i>중간</span><span><i style="background:#c43c25"></i>상대적으로 많음</span></div>
       </div>
-      <div class="card"><h3>한눈에 보기</h3><div class="meter" id="meter" style="margin-top:14px"></div></div>
-      <div class="card tap" data-doc="bands"><div class="rowh"><h3>왜 4 kHz인가요?</h3><span class="more">?</span></div></div>
+      <div class="card"><h3>소리별 부담 비중</h3><div id="meter" class="sound-shares"></div></div>
     </main>
   </section>
 
@@ -101,65 +61,54 @@
         <h3>얼마나 쉴까요?</h3>
         <div class="mins" id="mins"></div>
       </div>
-      <div class="card tap" data-doc="recovery"><div class="rowh"><h3>쉬어도 0%가 되지 않는 이유</h3><span class="more">?</span></div></div>
     </main>
   </section>
 
-  <!-- ④ 10년 뒤 -->
   <section id="future" hidden>
-    <div class="hero pad"><div class="top"><h1>10년 뒤 이 노래</h1></div></div>
+    <div class="hero pad"><div class="top"><h1>10년 뒤, 내 귀는?</h1></div></div>
     <main class="pad">
+      <div class="card hearing-comparison">
+        <h3>같은 10년, 다른 청취 습관</h3><div id="futureDataLabel" class="future-data-label" hidden>가상 데이터 예시, 실제 청취 기록과 무관</div>
+        <div class="hearing-legend"><span><i class="keep-line"></i>지금 습관 그대로</span><span><i class="down-line"></i>음량을 낮춰서</span></div>
+        <div id="eq" class="hearing-chart"></div><p id="volumeBenefit" class="volume-benefit" hidden></p>
+      </div>
       <div class="card">
-        <h3>같은 노래, 세 가지 미래</h3>
+        <h3>소리로도 비교해 보기</h3>
         <div class="seg" id="seg"></div>
-        <div id="eq" style="margin-top:16px"></div>
-        <div class="note" id="eqnote"></div>
-        <button class="btn wide" id="play" style="margin-top:12px">▶  재생</button>
+        <button class="btn wide" id="play" style="margin-top:16px">▶  재생</button>
         <label class="filebtn">내 음악 파일로 들어 보기<input type="file" id="fileIn" accept="audio/*"></label>
-      </div>
-      <div class="card">
-        <h3>예상 청력 변화 (ISO 1999)</h3>
-        <div class="note" id="isoHint"></div>
-        <table class="tbl" id="isoTbl"></table>
-      </div>
-      <div class="card">
-        <h3>무엇이 먼저 흐려지나</h3>
-        <div style="margin-top:6px">
-          <div class="line"><div><div class="n">심벌즈·하이햇</div></div><div class="f">6~10 kHz</div></div>
-          <div class="line"><div><div class="n">ㅅ ㅊ ㅌ 같은 자음</div></div><div class="f">3~6 kHz</div></div>
-          <div class="line"><div><div class="n">베이스·드럼</div></div><div class="f">~300 Hz</div></div>
-        </div>
       </div>
     </main>
   </section>
 
   <!-- ⑤ 리포트 -->
   <section id="report" hidden>
-    <div class="hero pad"><div class="top"><h1>주간 리포트</h1></div></div>
-    <main class="pad">
-      <div class="card"><h3>언제 들었나</h3><div class="heat" id="heat"></div></div>
-      <div class="card"><h3>부담이 어디서 왔나</h3><div class="stack" id="stack"></div><div class="legend" id="stackLg"></div></div>
-      <div class="card"><h3>볼륨 추세</h3><div id="vol" style="margin-top:12px"></div></div>
-      <div class="card tap" data-doc="ent"><div class="rowh"><h3>귀가 걱정된다면</h3><span class="more">›</span></div></div>
+    <div class="hero pad"><div class="top"><h1 id="reportTitle">청취 부담 리포트</h1></div></div>
+    <main class="pad report-body">
+      <div class="seg2 report-switch" id="reportView" role="group" aria-label="리포트 보기"><button data-report-view="day" aria-pressed="false">일별</button><button data-report-view="week" class="on" aria-pressed="true">주별</button></div>
+      <div class="report-date-nav"><button id="reportPrev" aria-label="이전 기간">‹</button><div class="report-period" id="reportPeriod"></div><button id="reportNext" aria-label="다음 기간">›</button></div>
+      <div class="card screen-time-card"><p class="report-caption" id="reportCaption">주간 누적 청취 부담</p><div class="report-total" id="reportAverage">0.0%</div><div class="record-detail" id="recordDetail" role="status" hidden></div><div id="weekChart" class="week-chart"></div></div>
+      <div class="sec">앱별 청취 부담</div><div class="card" id="reportApps"></div>
+      <div class="card" id="reportVolume"><h3>볼륨 추세</h3><div id="vol" style="margin-top:12px"></div></div>
     </main>
   </section>
 
   </div>
-
-  <div class="topbtns">
-    <button class="iconbtn" id="pauseBtn" aria-label="측정 일시정지" title="측정 일시정지/다시 시작"></button>
-    <button class="iconbtn avatar" id="avBtn" aria-label="프로필">?</button>
   </div>
+
+
 
   <nav class="tabbar"><div class="dock" id="track"><div class="lens" id="lens"></div></div></nav>
   <div id="toasts" aria-live="polite"></div>
+  <div class="device-connect-popup" id="deviceConnectPopup" role="alert" aria-labelledby="deviceConnectTitle" hidden><div><h3 id="deviceConnectTitle">장치를 연결해 주세요</h3><button id="deviceConnectClose" aria-label="장치 연결 안내 닫기">×</button></div><p>이어폰이나 헤드폰을 연결하고, 소리가 나오는 출력 장치로 선택해 주세요.</p></div>
+  <div class="sound-alert-popup" id="soundAlertPopup" role="alert" aria-labelledby="soundAlertTitle" hidden><div class="sound-alert-heading"><h3 id="soundAlertTitle">소리를 조금 줄여 주세요</h3><button id="soundAlertClose" aria-label="소리 경고 닫기">×</button></div><p id="soundAlertBody"></p><button id="soundAlertConfirm">확인했어요</button></div>
 
-  <!-- 프로필 · 설정 -->
+  <!-- 내 정보 및 설정 -->
   <div class="screen" id="profile" hidden>
     <div class="pad">
-      <div class="sh"><button class="back" data-close="profile" aria-label="뒤로"><b>‹</b>뒤로</button><h2>프로필 · 설정</h2></div>
+      <div class="sh"><button class="back" data-close="profile" aria-label="뒤로"><b>‹</b>뒤로</button><h2>내 정보 및 설정</h2></div>
       <div class="sbody">
-        <div class="card who"><div class="bigav" id="pAv">?</div><div style="min-width:0"><div class="n" id="pHead">로그인하지 않음</div><div class="e" id="pMail"></div></div></div>
+        <div class="card who"><button class="bigav photo-picker" id="pAv" aria-label="프로필 사진 변경">?</button><input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp" hidden><div style="min-width:0"><div class="n" id="pHead">로그인하지 않음</div><div class="e" id="pMail"></div><button class="linkbtn photo-change" id="changePhoto">프로필 사진 변경</button></div></div>
         <div class="card" id="pLoginCard" hidden>
           <button class="btn wide blue" id="pToLogin" style="margin-top:12px">로그인 · 회원가입</button>
         </div>
@@ -167,43 +116,16 @@
         <div class="sec">내 정보</div>
         <div class="card">
           <div class="field" id="pNameField"><label for="pName">이름</label><input id="pName" maxlength="20" autocomplete="off"></div>
-          <div class="field"><label for="pAge">나이대</label>
-            <select id="pAge"><option value="">선택 안 함</option><option value="14-17">만 14~17세</option><option value="18-19">만 18~19세</option><option value="20s">20대</option><option value="30plus">30대 이상</option></select></div>
-          <div class="field"><label for="pMode">기준</label>
+          <div class="field"><label for="pAge">나이</label>
+            <input id="pAge" type="number" min="14" max="120" step="1" inputmode="numeric" placeholder="만 나이"></div>
+          <div class="field" hidden><label for="pMode">기준</label>
             <select id="pMode"><option value="2">Mode 2 · 75 dBA × 40시간/주 (권장)</option><option value="1">Mode 1 · 80 dBA × 40시간/주 (성인)</option></select></div>
           <button class="btn wide blue" id="pSave" style="margin-top:18px">저장</button>
-        </div>
-
-        <div class="sec" id="devSec">내 기기</div>
-        <div class="card" style="padding-top:4px;padding-bottom:12px">
-          <div id="devList"></div>
         </div>
 
         <div class="sec">출력 장치</div>
         <div class="card">
           <div id="outList"></div>
-        </div>
-
-        <div class="sec">측정</div>
-        <div class="card" style="padding-top:4px;padding-bottom:4px">
-          <div class="row"><div><div class="n">측정하기</div></div><button class="sw" role="switch" id="swMeasure" aria-label="측정하기"></button></div>
-          <div class="row"><div><div class="n">캡처 신호에 볼륨이 이미 들어 있음</div></div><button class="sw" role="switch" data-set="loopbackIncludesVolume"></button></div>
-          <div class="row"><div><div class="n">윈도우 시작 시 자동 실행</div></div><button class="sw" role="switch" data-set="launchAtLogin"></button></div>
-          <div class="row"><div><div class="n">100% 경고를 안 보면 볼륨 낮추기</div></div><button class="sw" role="switch" data-set="autoReduceVolume"></button></div>
-        </div>
-
-        <div class="sec">동기화</div>
-        <div class="card" style="padding-top:4px;padding-bottom:4px">
-          <div class="row"><div><div class="n">기기 간 동기화</div></div><button class="sw" role="switch" data-set="syncEnabled"></button></div>
-          <div class="row"><div><div class="n">앱 이름도 올리기</div></div><button class="sw" role="switch" data-set="syncAppNames"></button></div>
-          <button class="row" data-doc="upload"><div class="n">서버에 올라가는 것 / 올라가지 않는 것</div><div class="ar">›</div></button>
-        </div>
-
-        <div class="sec">알림</div>
-        <div class="card" style="padding-top:4px;padding-bottom:4px">
-          <div class="row"><div><div class="n">사용량 경고</div></div><button class="sw" role="switch" data-notify="warn"></button></div>
-          <div class="row"><div><div class="n">쉬어가기 제안</div></div><button class="sw" role="switch" data-notify="rest"></button></div>
-          <div class="row"><div><div class="n">주간 리포트</div></div><button class="sw" role="switch" data-notify="weekly"></button></div>
         </div>
 
         <div class="sec">화면</div>
@@ -217,19 +139,16 @@
             <button data-accent="violet" style="--c:#7048e8"><i style="background:#7048e8"></i>보라</button>
           </div></div>
 
-        <div class="sec">내 데이터</div>
-        <div class="card" style="padding-top:4px;padding-bottom:4px">
-          <button class="row" id="exportBtn"><div class="n">내 기록 내보내기 (JSON)</div><div class="ar">›</div></button>
-          <button class="row" id="clearBtn"><div class="n">이 PC 기록 지우기</div><div class="ar">›</div></button>
-          <button class="row" data-doc="nocompare"><div class="n">친구와 비교하기</div><div class="v">만들지 않았어요 ›</div></button>
-        </div>
-
-        <div class="card" style="padding-top:4px;padding-bottom:4px" id="accountActions">
-          <button class="row" id="logout"><div class="n danger">로그아웃</div></button>
-          <button class="row" id="deleteAcc"><div class="n danger">회원 탈퇴 (서버 기록 삭제)</div></button>
-        </div>
+        <div class="sec">기타</div>
         <div class="card" style="padding-top:4px;padding-bottom:4px">
           <button class="row" id="toInfo"><div class="n">앱 정보</div><div class="ar">›</div></button>
+          <button class="row" id="exportBtn"><div class="n">내 기록 내보내기</div><div class="ar">›</div></button>
+          <button class="row" id="clearBtn"><div class="n">기록 지우기</div><div class="ar">›</div></button>
+          <button class="row" id="showTutorial"><div class="n">튜토리얼 보기</div><div class="ar">›</div></button>
+        </div>
+        <div class="card" style="padding-top:4px;padding-bottom:4px" id="accountActions">
+          <button class="row" id="logout"><div class="n danger">로그아웃</div></button>
+          <button class="row" id="deleteAcc"><div class="n danger">회원 탈퇴</div></button>
         </div>
       </div>
     </div>
@@ -248,9 +167,6 @@
         <div class="card" style="padding-top:4px;padding-bottom:4px">
           <button class="row" data-doc="terms"><div class="n">이용약관</div><div class="ar">›</div></button>
           <button class="row" data-doc="privacy"><div class="n">개인정보 처리방침</div><div class="ar">›</div></button>
-          <button class="row" data-doc="basis"><div class="n">계산 근거와 참고 자료</div><div class="ar">›</div></button>
-          <button class="row" data-doc="tier"><div class="n">측정 등급과 한계</div><div class="ar">›</div></button>
-          <button class="row" data-doc="notmed"><div class="n">의료기기가 아니에요</div><div class="ar">›</div></button>
         </div>
         <div class="card" style="padding-top:4px;padding-bottom:4px">
           <div class="row"><div class="n">버전</div><div class="v" id="verTx">–</div></div>
@@ -266,6 +182,17 @@
     <div class="pad">
       <div class="sh"><button class="back" id="docBack" aria-label="뒤로"><b>‹</b>뒤로</button><h2 id="docTitle"></h2></div>
       <div class="sbody"><div class="card docbody" id="docBody"></div></div>
+    </div>
+  </div>
+
+  <div class="screen onboarding" id="onboarding" hidden>
+    <div class="onboard-card"><div class="onboard-count" id="onboardCount"></div>
+      <div class="onboard-art" id="onboardArt" aria-hidden="true"></div>
+      <h2 id="onboardTitle"></h2><p id="onboardBody"></p>
+      <div class="onboard-dots" id="onboardDots" aria-hidden="true"></div>
+      <div id="permissionPanel" hidden><button class="btn wide blue" id="permissionBtn">알림 허용하기</button><p id="permissionStatus" role="status"></p></div>
+      <label class="onboard-skip" id="onboardSkip" hidden><input type="checkbox" id="hideTutorial">다시 보지 않음</label>
+      <div class="onboard-actions"><button class="btn ghost" id="onboardPrev">이전</button><button class="btn blue" id="onboardNext">다음</button></div>
     </div>
   </div>
 
@@ -289,25 +216,28 @@
       <h1>SafeEar</h1><p>폰 · 패드 · PC에서 들은 소리를 한 사람 기준으로</p>
     </div>
     <div class="sheetcard pad">
-      <div class="notice" id="noServer" hidden>서버 설정이 아직 없어요. 지금은 「로그인 없이 사용」만 할 수 있어요. (docs/AUTH_SETUP.md)</div>
-      <div class="tabs2" id="authTabs" style="margin-top:14px"><button data-at="login" class="on">로그인</button><button data-at="signup">회원가입</button></div>
+      <div class="notice" id="noServer" hidden>현재 계정 서버에 연결되지 않았어요. 로그인과 이메일 인증은 서버 연결 후 사용할 수 있어요.</div>
+      <h2 id="authTitle" class="auth-title">로그인</h2>
 
       <button class="gbtn" id="googleBtn" type="button"><svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg><span id="googleTx">Google로 계속하기</span></button>
       <div class="orline">또는 이메일로</div>
 
       <form id="fLogin" novalidate>
-        <div class="field" style="margin-top:10px"><label for="lEmail">이메일</label><input id="lEmail" type="email" autocomplete="email" placeholder="name@example.com"></div>
+        <div class="field" style="margin-top:10px"><label for="lEmail">이메일 또는 아이디</label><input id="lEmail" type="text" autocomplete="username" placeholder="이메일 또는 아이디"></div>
         <div class="field"><label for="lPw">비밀번호</label><input id="lPw" type="password" autocomplete="current-password" placeholder="비밀번호"></div>
         <div class="err" id="lErr"></div><div class="okmsg" id="lOk"></div>
         <button class="btn wide blue" type="submit" id="lBtn">로그인</button>
         <button class="linkbtn" type="button" id="forgotBtn">비밀번호를 잊었어요</button>
+        <p class="auth-switch">처음이신가요? <button type="button" id="toSignup">회원가입 하기</button></p>
       </form>
 
       <form id="fSignup" novalidate hidden>
         <div class="field" style="margin-top:10px"><label for="sName">이름 (별명도 돼요)</label><input id="sName" maxlength="20" autocomplete="nickname" placeholder="이름"></div>
+        <div class="field"><label for="sUsername">아이디</label><input id="sUsername" autocomplete="username" minlength="4" maxlength="20" placeholder="영문, 숫자, 밑줄 4~20자"><p class="field-help">로그인할 때 사용할 아이디예요.</p></div>
+        <div class="field"><label for="sAge">나이</label><input id="sAge" type="number" min="14" max="120" step="1" inputmode="numeric" placeholder="만 나이"></div>
         <div class="field"><label for="sEmail">이메일</label><input id="sEmail" type="email" autocomplete="email" placeholder="name@example.com"></div>
         <div class="field"><label for="sPw">비밀번호</label><input id="sPw" type="password" autocomplete="new-password" placeholder="8자 이상"></div>
-        <div class="field"><label for="sPw2">비밀번호 확인</label><input id="sPw2" type="password" autocomplete="new-password" placeholder="한 번 더 입력"></div>
+        <div class="field"><label for="sPw2">비밀번호 확인</label><input id="sPw2" aria-describedby="sPwMatch" type="password" autocomplete="new-password" placeholder="한 번 더 입력"><p id="sPwMatch" class="password-match" aria-live="polite"></p></div>
         <div class="agree">
           <div class="ag all"><input type="checkbox" id="agAll"><label for="agAll">전체 동의</label></div>
           <div class="ag"><input type="checkbox" id="ag14" data-req="1"><label for="ag14"><span class="req">[필수]</span>만 14세 이상입니다</label></div>
@@ -317,9 +247,10 @@
           <div class="ag"><input type="checkbox" id="agPush"><label for="agPush"><span class="opt">[선택]</span>소식 메일 받기</label></div>
         </div>
         <div class="err" id="sErr"></div><div class="okmsg" id="sOk"></div>
-        <button class="btn wide blue" type="submit" id="sBtn" disabled>가입하기</button>
+        <button class="btn wide blue" type="submit" id="sBtn">가입하고 로그인</button>
+        <p class="auth-switch">이미 계정이 있나요? <button type="button" id="toLogin">로그인 하기</button></p>
       </form>
-      <button class="btn wide ghost" id="localBtn" style="margin-top:14px">로그인 없이 사용</button>
+
     </div>
   </div>
 </div>

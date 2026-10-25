@@ -9,6 +9,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const res = await build({
   entryPoints: [join(root, 'src/preview/preview.ts')],
   bundle: true,
+  loader: { '.png': 'dataurl' },
   minify: true,
   write: false,
   format: 'iife',
@@ -22,10 +23,7 @@ let html = readFileSync(join(root, 'src/ui/index.html'), 'utf8')
   .replace('<link rel="stylesheet" href="styles.css">', () => `<style>\n${css}\n</style>`)
   .replace('<script src="app.js"></script>', () => `<script>\n${js}\n</script>`)
   .replace('<title>SafeEar</title>', '<title>SafeEar 미리보기</title>')
-  .replace(
-    '로그인 없이도 이 PC 안에서 모든 기능을 쓸 수 있어요. 소리는 어디에도 저장하거나 보내지 않아요.',
-    '미리보기예요. 로그인과 데이터는 모두 가짜이고, 어떤 정보도 보내지 않아요.',
-  );
+;
 mkdirSync(join(root, 'dist'), { recursive: true });
 writeFileSync(join(root, 'dist/preview.html'), html);
 console.log('wrote dist/preview.html', (html.length / 1024).toFixed(0) + 'KB');

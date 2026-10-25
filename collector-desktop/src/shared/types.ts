@@ -95,6 +95,9 @@ export interface GaugeView {
   devices: DeviceShare[];
   heat: number[][];
   heatDays: string[];
+  todayHours: number[];
+  todayApps: { label: string; pct: number }[];
+  weekDays: { date: string; day: string; listenSec: number }[];
   apps: { label: string; pct: number }[];
   volumeTrend: { day: string; avg: number }[];
   iso: { lex8h: number | null; scenarios: Scenario[] };
@@ -137,6 +140,7 @@ export interface Settings {
   loopbackIncludesVolume: boolean;
   defaultRefSplDb: number;
   outputs: Record<string, OutputSetting>;
+  age: number | null;
   ageBand: AgeBand | null;
   mode: HearingMode | null;
   syncEnabled: boolean;
@@ -147,6 +151,7 @@ export interface Settings {
   theme: 'auto' | 'light' | 'dark';
   accent: 'ocean' | 'forest' | 'sunset' | 'violet';
   localOnlyChosen: boolean;
+  notificationConsent: boolean;
 }
 
 export interface AppState {
@@ -169,20 +174,32 @@ export interface RemoteDevice {
 /** 화면에서 main으로 보내는 결과 */
 export type Result<T = void> = { ok: true; data: T } | { ok: false; error: string };
 
+export interface ReportView {
+  burdenTotals: number[];
+  start: string;
+  end: string;
+  labels: string[];
+  totals: number[];
+  apps: { label: string; pct: number }[];
+  volumeTrend: { day: string; avg: number }[];
+}
+
 export interface SafeEarApi {
+  getReport(date: string, view: 'day' | 'week'): Promise<Result<ReportView>>;
   getState(): Promise<AppState>;
   onState(cb: (s: AppState) => void): () => void;
   onWave(cb: (w: WaveChunk) => void): () => void;
   onNavigate(cb: (tab: string) => void): () => void;
-  signUp(p: { name: string; email: string; password: string; marketing: boolean }): Promise<Result<{ needsConfirm: boolean }>>;
+  signUp(p: { name: string; username: string; email: string; password: string; age: number; marketing: boolean }): Promise<Result<{ needsConfirm: boolean }>>;
   signIn(p: { email: string; password: string }): Promise<Result>;
   signInWithGoogle(): Promise<Result>;
+  requestNotifications(): Promise<Result<'granted' | 'denied' | 'unsupported' | 'requested'>>;
   resetPassword(email: string): Promise<Result>;
   updatePassword(password: string): Promise<Result>;
   signOut(): Promise<Result>;
   continueLocal(): Promise<Result>;
   deleteAccount(): Promise<Result>;
-  updateProfile(p: { name?: string; ageBand?: AgeBand | null; mode?: HearingMode | null }): Promise<Result>;
+  updateProfile(p: { name?: string; age?: number; ageBand?: AgeBand | null; mode?: HearingMode | null }): Promise<Result>;
   setSettings(p: Partial<Settings>): Promise<Result>;
   setOutput(id: string, p: Partial<Pick<OutputSetting, 'type' | 'refSplDb'>>): Promise<Result>;
   listDevices(): Promise<Result<RemoteDevice[]>>;

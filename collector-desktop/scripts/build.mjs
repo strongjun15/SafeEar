@@ -26,7 +26,7 @@ if (!env.SAFEEAR_SUPABASE_URL) console.warn('[build] .env에 SAFEEAR_SUPABASE_UR
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
-const common = { bundle: true, sourcemap: !prod, minify: prod, logLevel: 'info', target: 'es2022' };
+const common = { bundle: true, loader: { '.png': 'dataurl' }, sourcemap: !prod, minify: prod, logLevel: 'info', target: 'es2022' };
 const jobs = [
   {
     ...common,

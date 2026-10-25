@@ -23,7 +23,7 @@ export class Notifier {
   ) {}
 
   private show(title: string, body: string, tab?: string, onClick?: () => void): Notification | null {
-    if (!Notification.isSupported()) return null;
+    if (!this.settings.value.notificationConsent || !Notification.isSupported()) return null;
     const n = new Notification({ title, body, silent: false });
     n.on('click', () => {
       onClick?.();

@@ -12,6 +12,7 @@
 import {
   BrowserWindow,
   Menu,
+  Notification,
   Tray,
   app,
   desktopCapturer,
@@ -37,8 +38,6 @@ import { SyncService } from './sync';
 import { VolumeHelper } from './volume';
 
 const VERSION = app.getVersion();
-/** 개발·시연용: 실제 시스템 소리 대신 합성 음악을 분석한다 (윈도우가 아닌 PC에서도 화면을 확인할 수 있게) */
-const DEMO_AUDIO = process.env.SAFEEAR_DEMO_AUDIO === '1';
 const startHidden = process.argv.includes('--hidden');
 
 app.setAppUserModelId('kr.hs.gbs.nabla.safeear');
@@ -89,19 +88,20 @@ app.whenReady().then(async () => {
   auth.on('focus', () => showUi());
   auth.on('change', async () => {
     gauges.invalidate();
-    if (auth.userId) await pullProfile();
+    await stopCapture();
+    if (auth.userId) { await pullProfile(); await startCapture(); }
     pushState();
   });
 
   /** 로그인하면 서버 프로필(나이대·모드)과 이 기기 설정을 맞춘다 */
   async function pullProfile(): Promise<void> {
     const p = await auth.loadProfile();
-    const s = settings.value;
-    if (p && (p.age_band || p.hearing_mode)) {
-      settings.update({ ageBand: p.age_band ?? s.ageBand, mode: p.hearing_mode ?? s.mode });
-    } else if (s.ageBand || s.mode) {
-      await auth.saveProfile({ age_band: s.ageBand, hearing_mode: s.mode }).catch(() => undefined);
-    }
+    const rawAge = auth.session?.user.user_metadata?.age;
+    const age = Number.isInteger(rawAge) && rawAge >= 14 && rawAge <= 120 ? rawAge as number : null;
+    const ageBand: AgeBand | null = age == null ? null : age < 18 ? '14-17' : age < 20 ? '18-19' : age < 30 ? '20s' : '30plus';
+    const mode = resolveMode(ageBand, age != null && age >= 18 ? p?.hearing_mode ?? 2 : 2);
+    settings.update({ age, ageBand, mode });
+    if (!p && age != null) await auth.saveProfile({ age_band: ageBand, hearing_mode: mode }).catch(() => undefined);
   }
   if (auth.userId) void pullProfile();
 
@@ -147,10 +147,7 @@ app.whenReady().then(async () => {
 
   async function startCapture(): Promise<void> {
     if (!engine || settings.value.paused) return;
-    if (DEMO_AUDIO) {
-      await engine.webContents.executeJavaScript('window.safeearEngine && window.safeearEngine.startDemo()', true).catch(() => undefined);
-      return;
-    }
+    if (!auth.userId) return;
     if (process.platform !== 'win32') {
       meter.setCaptureStatus({ status: 'unsupported', message: '시스템 소리 캡처는 윈도우에서만 돼요' });
       return;
@@ -170,7 +167,7 @@ app.whenReady().then(async () => {
 
   const fromEngine = (e: Electron.IpcMainEvent) => !!engine && e.sender === engine.webContents;
   ipcMain.on('engine:frame', (e, f: EngineFrame) => {
-    if (fromEngine(e)) meter.onFrame(f.features, f.t);
+    if (fromEngine(e) && auth.userId) meter.onFrame(f.features, f.t);
   });
   ipcMain.on('engine:status', (e, s: EngineStatus) => {
     if (!fromEngine(e)) return;
@@ -319,9 +316,21 @@ app.whenReady().then(async () => {
   }
 
   ipcMain.handle('api:getState', (e) => (fromUi(e) ? buildState() : null));
-  handle('api:signUp', (p: { name: string; email: string; password: string; marketing: boolean }) => auth.signUp(p));
+  handle('api:getReport', (date: string, view: 'day' | 'week') => {
+    if (!auth.userId) throw new Error('로그인이 필요해요.');
+    return gauges.report(date, view);
+  });
+  handle('api:signUp', (p: { name: string; username: string; email: string; password: string; age: number; marketing: boolean }) => auth.signUp(p));
   handle('api:signIn', (p: { email: string; password: string }) => auth.signIn(p.email, p.password));
   handle('api:signInWithGoogle', () => auth.signInWithGoogle());
+  handle('api:requestNotifications', () => {
+    if (!auth.userId) throw new Error('로그인이 필요해요.');
+    if (!Notification.isSupported()) return 'unsupported';
+    settings.update({ notificationConsent: true });
+    const n = new Notification({ title: 'SafeEar 알림', body: '사용량 경고와 회복 안내를 알려드릴게요.' });
+    n.show();
+    return 'requested';
+  });
   handle('api:resetPassword', (email: string) => auth.resetPassword(email));
   handle('api:updatePassword', (pw: string) => auth.updatePassword(pw));
   handle('api:signOut', async () => {
@@ -329,7 +338,7 @@ app.whenReady().then(async () => {
     settings.update({ localOnlyChosen: false });
   });
   handle('api:continueLocal', () => {
-    settings.update({ localOnlyChosen: true });
+    throw new Error('로그인이 필요해요.');
   });
   handle('api:deleteAccount', async () => {
     const r = await dialog.showMessageBox(ui!, {
@@ -345,11 +354,15 @@ app.whenReady().then(async () => {
     await auth.deleteAccount();
     settings.update({ localOnlyChosen: false });
   });
-  handle('api:updateProfile', async (p: { name?: string; ageBand?: AgeBand | null; mode?: HearingMode | null }) => {
+  handle('api:updateProfile', async (p: { name?: string; age?: number; ageBand?: AgeBand | null; mode?: HearingMode | null }) => {
     const s = settings.value;
-    const ageBand = p.ageBand !== undefined ? p.ageBand : s.ageBand;
+    if (!auth.userId) throw new Error('로그인이 필요해요.');
+    const age = p.age ?? s.age;
+    if (age == null || !Number.isInteger(age) || age < 14 || age > 120) throw new Error('나이는 만 14~120세로 입력해 주세요.');
+    const ageBand: AgeBand = age < 18 ? '14-17' : age < 20 ? '18-19' : age < 30 ? '20s' : '30plus';
     const mode = resolveMode(ageBand, p.mode !== undefined ? p.mode : s.mode);
-    settings.update({ ageBand, mode });
+    await auth.saveAge(age);
+    settings.update({ age, ageBand, mode });
     gauges.invalidate();
     if (auth.userId) {
       await auth.saveProfile({
@@ -363,10 +376,7 @@ app.whenReady().then(async () => {
     const allowed: (keyof Settings)[] = [
       'loopbackIncludesVolume',
       'defaultRefSplDb',
-      'syncEnabled',
       'syncAppNames',
-      'notify',
-      'autoReduceVolume',
       'launchAtLogin',
       'theme',
       'accent',

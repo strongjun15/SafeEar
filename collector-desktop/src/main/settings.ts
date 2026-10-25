@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS: Settings = {
   loopbackIncludesVolume: false,
   defaultRefSplDb: DEFAULT_CALIBRATION.refSplDb,
   outputs: {},
+  age: null,
   ageBand: null,
   mode: null,
   syncEnabled: true,
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'auto',
   accent: 'ocean',
   localOnlyChosen: false,
+  notificationConsent: false,
 };
 
 /** 원자적 쓰기 (쓰다가 꺼져도 파일이 깨지지 않게) */
@@ -45,8 +47,9 @@ export class SettingsStore {
     this.value = {
       ...DEFAULT_SETTINGS,
       ...saved,
-      notify: { ...DEFAULT_SETTINGS.notify, ...(saved.notify ?? {}) },
       outputs: saved.outputs ?? {},
+      syncEnabled: true,
+      notify: { warn: true, rest: true, weekly: true },
     };
   }
 

@@ -1,3 +1,4 @@
+import { buildReport, type ReportRecord } from '../shared/report';
 /**
  * 게이지 계산 — 이 기기 기록 + 같은 계정의 다른 기기 기록을 합친 타임라인 위에서 (계획서 14.3절).
  */
@@ -75,6 +76,9 @@ export class GaugeService {
       devices: [],
       heat: Array.from({ length: 7 }, () => new Array(12).fill(0)),
       heatDays: [],
+      weekDays: [],
+      todayHours: new Array(24).fill(0),
+      todayApps: [],
       apps: [],
       volumeTrend: [],
       iso: { lex8h: null, scenarios: [] },
@@ -91,6 +95,14 @@ export class GaugeService {
   private localRecords(sinceMinute: number): StoredRecord[] {
     const owner = this.d.ownerId();
     return this.d.store.recent(sinceMinute).filter((r) => r.owner_id === owner || r.owner_id === null);
+  }
+
+  report(date: string, view: 'day' | 'week') {
+    const start = new Date(`${date}T00:00:00`); if (view === 'week') start.setDate(start.getDate() - 6);
+    const records: ReportRecord[] = [...this.localRecords(minuteOfMs(start.getTime())), ...this.d.remoteRecords()];
+    const partial = this.d.meter.partial();
+    if (partial) records.push({ device_id: this.d.thisDeviceIds()[0], minute_start: isoOfMinute(partial.minute), output_type: 'headphones', dose_eeh: partial.eeh, dose_kurt: partial.kurt, band_dose: null, listen_seconds: this.d.meter.partialListenSeconds() });
+    return buildReport(records, date, view, resolveMode(this.d.settings.value.ageBand, this.d.settings.value.mode));
   }
 
   compute(nowMs = Date.now()): GaugeView {
@@ -171,7 +183,7 @@ export class GaugeService {
     const pct = (x: number) => (x / allowance) * 100;
     const thisIds = new Set(this.d.thisDeviceIds());
 
-    const curve = fatigueCurve(merged.values(), now - 8 * 60, now, 5).map((p) => ({
+    const curve = fatigueCurve(merged.values(), minuteOfMs(new Date(nowMs).setHours(0, 0, 0, 0)), now, 5).map((p) => ({
       minute: p.minute,
       fast: pct(p.fast),
       slow: pct(p.slow),
@@ -222,11 +234,19 @@ export class GaugeService {
       d.setDate(day0.getDate() + i);
       heatDays.push(DOW[d.getDay()]);
     }
+    const todayHours = new Array<number>(24).fill(0);
+    const todayStart = new Date(nowMs).setHours(0, 0, 0, 0);
+    const weekDays = heatDays.map((day, i) => {
+      const date = new Date(day0); date.setDate(date.getDate() + i);
+      return { date: `${date.getMonth() + 1}/${date.getDate()}`, day, listenSec: 0 };
+    });
     for (const m of merged.values()) {
       const dt = new Date(m.minute * 60000);
       const dayIdx = Math.floor((new Date(dt).setHours(0, 0, 0, 0) - day0.getTime()) / 86400_000 + 0.5);
       if (dayIdx < 0 || dayIdx > 6) continue;
       heat[dayIdx][Math.floor(dt.getHours() / 2)] += m.kurt;
+      weekDays[dayIdx].listenSec += m.listenSeconds;
+      if (dt.getTime() >= todayStart) todayHours[dt.getHours()] += m.listenSeconds;
     }
 
     // 무엇으로 들었나: 이 기기는 앱 이름, 다른 기기는 범주
@@ -279,13 +299,24 @@ export class GaugeService {
           { id: 'down' as const, deltaDb: -3, points: niptsCurve(lex8h - 3, 10) },
         ];
 
+    const todayByApp = new Map<string, number>();
+    for (const r of [...local, ...remote]) {
+      if (r.output_type === 'speaker' || new Date(r.minute_start).getTime() < todayStart) continue;
+      const label = 'app_name' in r && r.app_name ? String(r.app_name) : LABEL_KO[r.content_label ?? 'other'] ?? '기타';
+      todayByApp.set(label, (todayByApp.get(label) ?? 0) + (r.dose_kurt ?? r.dose_eeh));
+    }
+    const todayTotal = [...todayByApp.values()].reduce((a, b) => a + b, 0);
+    const todayApps = [...todayByApp].map(([label, value]) => ({ label, pct: todayTotal > 0 ? value / todayTotal * 100 : 0 })).sort((a, b) => b.pct - a.pct);
     return {
+      todayHours,
+      todayApps,
       curve,
       bands,
       bandCoverage: total > 0 ? withBand / total : 0,
       devices,
       heat,
       heatDays,
+      weekDays,
       apps,
       volumeTrend,
       iso: { lex8h, scenarios },

@@ -10,6 +10,7 @@ function subscribe<T>(channel: string, cb: (v: T) => void): () => void {
 }
 
 const api: SafeEarApi & { setPaused(p: boolean): Promise<void> } = {
+  getReport: (date, view) => invoke('api:getReport', date, view),
   getState: () => invoke('api:getState'),
   onState: (cb) => subscribe('state', cb),
   onWave: (cb) => subscribe('wave', cb),
@@ -17,6 +18,7 @@ const api: SafeEarApi & { setPaused(p: boolean): Promise<void> } = {
   signUp: (p) => invoke('api:signUp', p),
   signIn: (p) => invoke('api:signIn', p),
   signInWithGoogle: () => invoke('api:signInWithGoogle'),
+  requestNotifications: () => invoke('api:requestNotifications'),
   resetPassword: (email) => invoke('api:resetPassword', email),
   updatePassword: (pw) => invoke('api:updatePassword', pw),
   signOut: () => invoke('api:signOut'),
