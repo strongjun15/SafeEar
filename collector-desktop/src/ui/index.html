@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' blob:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' blob:; frame-src https://m.map.naver.com https://map.naver.com">
 <title>SafeEar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Gowun+Batang:wght@400;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -21,69 +21,69 @@
       <div class="top"><h1>최근 7일 귀 피로도</h1><button class="badge" id="badge"><i></i><span id="badgeTx">측정 준비 중</span></button>
       </div>
       <div class="herocard">
+        <button class="qbtn on-accent" data-doc="ring" aria-label="이 숫자는 뭔가요?">?</button>
         <div class="ringbox" id="homeRing"></div>
         <div class="glass">
-          <div><b id="leftPct">–</b><span>남은 여유</span></div>
-          <div><b id="projTx">–</b><span id="projLbl">100% 예상</span></div>
+          <div><b id="leftTx">–</b><span id="leftLbl">남은 시간</span></div>
+          <div><b id="projTx">–</b><span id="projLbl">이 속도라면</span></div>
         </div>
       </div>
     </div>
     <main class="pad">
       <div class="card">
-        <div class="rowh"><h3>지금 들리는 소리</h3><span class="more" id="tierTx">등급 B · 시스템 캡처</span></div>
+        <div class="rowh"><h3>지금 들리는 소리</h3><button class="qbtn" data-doc="tier" aria-label="어떻게 재나요?">?</button></div>
         <canvas class="wave" id="wave" width="680" height="168"></canvas>
         <div class="liveinfo">
-          <div><b id="liveSpl">–</b><span>추정 음량</span></div>
-          <div><b id="liveVol">–</b><span>윈도우 볼륨</span></div>
-          <div><b id="liveApp">–</b><span>재생 중인 앱</span></div>
+          <div><b id="liveSpl">–</b><span>지금 크기</span></div>
+          <div><b id="liveVol">–</b><span>PC 볼륨</span></div>
+          <div><b id="liveApp">–</b><span>듣는 앱</span></div>
         </div>
         <div class="outrow"><span class="pill off" id="outPill">출력</span><span class="n" id="outName">출력 장치 확인 중</span></div>
         <div id="liveHint"></div>
       </div>
 
-      <div class="card tap" data-doc="dual">
-        <div class="rowh"><h3>두 가지 계산</h3><span class="more">?</span></div>
-        <div class="dual" id="dual"><div class="bar" id="dualBar"></div><div class="mk" id="dualMk"><b>기존</b></div>
-          <span class="tick" style="left:80%">80%</span><span class="tick" style="left:100%">100%</span></div>
-        <div class="duallg"><span>SafeEar <b id="dualSe">0%</b></span><span>기존 방식 <b id="dualStd">0%</b></span></div>
+      <div class="card">
+        <div class="rowh"><h3>경고까지 남은 거리</h3><button class="qbtn" data-doc="gauge" aria-label="주의선과 한도">?</button></div>
+        <div class="dual" id="dual"><div class="bar" id="dualBar"></div><div class="mk" id="dualMk"><b>지금</b></div>
+          <span class="tick" style="left:80%">주의</span><span class="tick" style="left:100%">한도</span></div>
+        <div class="gaugetx" id="gaugeTx">–</div>
       </div>
 
       <div class="stats">
         <div class="stat"><div class="k">오늘 들은 시간</div><div class="v" id="stToday">0<small>분</small></div></div>
-        <div class="stat"><div class="k">오늘 누적</div><div class="v" id="stTodayPct">0<small>%</small></div></div>
-        <div class="stat tap" data-doc="kurtosis"><div class="k">뾰족함 β</div><div class="v" id="stBeta">–</div></div>
-        <div class="stat"><div class="k">기준 모드</div><div class="v" id="stMode">Mode 2</div></div>
+        <div class="stat"><div class="k">오늘 쓴 양</div><div class="v" id="stTodayPct">0<small>%</small></div></div>
+        <div class="stat tap" data-doc="kurtosis"><div class="k">소리 뾰족함 <i class="qi">?</i></div><div class="v" id="stBeta">–</div></div>
+        <div class="stat tap" data-doc="ring"><div class="k">적용 기준 <i class="qi">?</i></div><div class="v" id="stMode">–</div></div>
       </div>
 
       <div class="card">
-        <div class="rowh"><h3>기기별 기여</h3><span class="more tap" id="toDevices">기기 ›</span></div>
+        <div class="rowh"><h3>어느 기기에서 들었나</h3><button class="more" id="toDevices">기기 ›</button></div>
         <div class="devshare" id="devShare"></div>
         <div id="syncLine"></div>
       </div>
 
       <div class="card">
-        <h3>오늘의 피로 곡선</h3>
+        <div class="rowh"><h3>최근 8시간 피로 변화</h3><button class="qbtn" data-doc="fatigue" aria-label="피로가 두 가지인 이유">?</button></div>
         <div id="curve" style="margin-top:12px"></div>
-        <div class="legend"><span><i style="background:var(--amber)"></i>빠른 피로</span><span><i style="background:var(--blue)"></i>느린 피로</span></div>
+        <div class="legend"><span><i style="background:var(--amber)"></i>금방 풀리는 피로</span><span><i style="background:var(--blue)"></i>천천히 풀리는 피로</span></div>
       </div>
       <div class="card tap" data-go="map">
-        <div class="rowh"><h3>귀 지도</h3><span class="more">자세히 ›</span></div>
-        
+        <div class="rowh"><h3>음역별 부담</h3><span class="more">자세히 ›</span></div>
         <div id="miniMap" style="margin-top:12px"></div>
       </div>
     </main>
   </section>
 
-  <!-- ② 귀 지도 -->
+  <!-- ② 음역별 부담 -->
   <section id="map" hidden>
-    <div class="hero pad"><div class="top"><h1>귀 지도</h1></div></div>
+    <div class="hero pad"><div class="top"><h1>음역별 부담</h1></div></div>
     <main class="pad">
       <div class="card">
-        <h3>1/3 옥타브 19개 대역</h3>
+        <div class="rowh"><h3>최근 7일 동안 쌓인 부담</h3><button class="qbtn" data-doc="bands" aria-label="그래프 보는 법">?</button></div>
         <div id="bigMap" style="margin-top:14px"></div>
+        <div class="bandtop" id="bandTop"></div>
       </div>
-      <div class="card"><h3>한눈에 보기</h3><div class="meter" id="meter" style="margin-top:14px"></div></div>
-      <div class="card tap" data-doc="bands"><div class="rowh"><h3>왜 4 kHz인가요?</h3><span class="more">?</span></div></div>
+      <div class="card"><h3>저음 · 중음 · 고음</h3><div class="meter" id="meter" style="margin-top:14px"></div></div>
     </main>
   </section>
 
@@ -92,6 +92,7 @@
     <div class="hero pad">
       <div class="top"><h1>회복</h1></div>
       <div class="herocard">
+        <button class="qbtn on-accent" data-doc="recovery" aria-label="쉬어도 0%가 되지 않는 이유">?</button>
         <div class="ringbox" id="timerRing"></div>
         <button class="herobtn" id="tbtn">시작</button>
       </div>
@@ -101,7 +102,6 @@
         <h3>얼마나 쉴까요?</h3>
         <div class="mins" id="mins"></div>
       </div>
-      <div class="card tap" data-doc="recovery"><div class="rowh"><h3>쉬어도 0%가 되지 않는 이유</h3><span class="more">?</span></div></div>
     </main>
   </section>
 
@@ -110,25 +110,20 @@
     <div class="hero pad"><div class="top"><h1>10년 뒤 이 노래</h1></div></div>
     <main class="pad">
       <div class="card">
-        <h3>같은 노래, 세 가지 미래</h3>
-        <div class="seg" id="seg"></div>
-        <div id="eq" style="margin-top:16px"></div>
+        <div class="rowh"><h3>미래의 내 귀로 들어 보기</h3><button class="qbtn" data-doc="future" aria-label="어떻게 만들었나요?">?</button></div>
+        <div class="seg2 two" id="earSeg"><button data-ear="now">지금 내 귀</button><button data-ear="future" class="on">미래의 내 귀</button></div>
+        <div class="sliders" id="sliders">
+          <label class="sl"><span class="slk">언제</span><input type="range" id="slYears" min="1" max="30" step="1" value="10"><b id="slYearsTx">10년 뒤</b></label>
+          <label class="sl"><span class="slk">볼륨</span><input type="range" id="slVol" min="-10" max="10" step="1" value="0"><b id="slVolTx">지금 그대로</b></label>
+        </div>
+        <div id="eq" style="margin-top:8px"></div>
         <div class="note" id="eqnote"></div>
         <button class="btn wide" id="play" style="margin-top:12px">▶  재생</button>
         <label class="filebtn">내 음악 파일로 들어 보기<input type="file" id="fileIn" accept="audio/*"></label>
       </div>
       <div class="card">
-        <h3>예상 청력 변화 (ISO 1999)</h3>
-        <div class="note" id="isoHint"></div>
+        <div class="rowh"><h3>높이별 예상 변화</h3><span class="lex" id="isoHint"></span></div>
         <table class="tbl" id="isoTbl"></table>
-      </div>
-      <div class="card">
-        <h3>무엇이 먼저 흐려지나</h3>
-        <div style="margin-top:6px">
-          <div class="line"><div><div class="n">심벌즈·하이햇</div></div><div class="f">6~10 kHz</div></div>
-          <div class="line"><div><div class="n">ㅅ ㅊ ㅌ 같은 자음</div></div><div class="f">3~6 kHz</div></div>
-          <div class="line"><div><div class="n">베이스·드럼</div></div><div class="f">~300 Hz</div></div>
-        </div>
       </div>
     </main>
   </section>
@@ -137,10 +132,35 @@
   <section id="report" hidden>
     <div class="hero pad"><div class="top"><h1>주간 리포트</h1></div></div>
     <main class="pad">
-      <div class="card"><h3>언제 들었나</h3><div class="heat" id="heat"></div></div>
-      <div class="card"><h3>부담이 어디서 왔나</h3><div class="stack" id="stack"></div><div class="legend" id="stackLg"></div></div>
-      <div class="card"><h3>볼륨 추세</h3><div id="vol" style="margin-top:12px"></div></div>
-      <div class="card tap" data-doc="ent"><div class="rowh"><h3>귀가 걱정된다면</h3><span class="more">›</span></div></div>
+      <figure class="quote" id="quote">
+        <span class="qm open" aria-hidden="true">“</span>
+        <blockquote id="quoteTx">…</blockquote>
+        <span class="qm close" aria-hidden="true">”</span>
+        <figcaption id="quoteBy"></figcaption>
+      </figure>
+      <div class="card">
+        <div class="rowh"><h3>언제 많이 들었나</h3></div>
+        <div class="seg2 two" id="heatSeg"><button data-hv="week" class="on">한 주 전체</button><button data-hv="day">요일별로</button></div>
+        <div id="heatWeek"><div class="heat" id="heat"></div><div class="heatlg"><span>적게</span><i></i><span>많이</span></div></div>
+        <div id="heatDay" hidden>
+          <div class="daynav"><button class="iconbtn" id="dayPrev" aria-label="이전 날">‹</button><div class="dayttl"><b id="dayTitle">–</b><span id="daySub"></span></div><button class="iconbtn" id="dayNext" aria-label="다음 날">›</button></div>
+          <div id="dayBars"></div>
+        </div>
+      </div>
+      <div class="card"><h3>무엇으로 들었나</h3><div class="stack" id="stack"></div><div class="legend" id="stackLg"></div></div>
+      <div class="card"><div class="rowh"><h3>PC 볼륨 변화</h3><span class="lex" id="volTx"></span></div><div id="vol" style="margin-top:12px"></div></div>
+      <div class="card care">
+        <h3>귀가 걱정된다면</h3>
+        <div class="signs">
+          <div class="sign"><span class="si"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h2l2-6 3 12 3-9 2 3h6"/></svg></span><p>귀에서 <b>삐 소리</b>가 계속 나요</p></div>
+          <div class="sign"><span class="si"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 17a4 4 0 0 0 8 0c0-2 3-3 3-7a7 7 0 0 0-14 0"/><path d="M12 8a2.5 2.5 0 0 1 2.5 2.5c0 1.5-2.5 2-2.5 4"/></svg></span><p><b>먹먹한 느낌</b>이 하루 넘게 가요</p></div>
+          <div class="sign"><span class="si"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.1-4.6A8 8 0 1 1 21 12Z"/><path d="M9 12h.01M12 12h.01M15 12h.01"/></svg></span><p>시끄러운 곳에서 <b>말이 잘 안 들려요</b></p></div>
+        </div>
+        <div class="urgent"><b>갑자기 한쪽이 안 들리면</b> 바로 병원에 가세요. 빨리 치료할수록 좋아요.</div>
+        <div class="mapbox" id="mapBox"></div>
+        <div class="maprow"><input id="mapRegion" placeholder="동네 이름 (예: 의정부)" autocomplete="off"><button class="btn sm" id="mapGo">찾기</button></div>
+        <button class="btn ghost wide sm" id="mapOpen" style="margin-top:10px">네이버 지도에서 크게 보기</button>
+      </div>
     </main>
   </section>
 

@@ -1,8 +1,8 @@
 /** SafeEar 화면 — main 프로세스가 1초마다 보내는 AppState를 그린다 */
-import { type AgeBand, type HearingMode, type OutputType } from '@safeear/core';
+import { BAND_NOMINAL_HZ, niptsCurve, pa2FromDb, type AgeBand, type HearingMode, type OutputType } from '@safeear/core';
 import type { AppState, Result, SafeEarApi, Scenario, Settings, WaveChunk } from '../shared/types';
 import { AudioLab } from './audio-lab';
-import { barMap, bandColor, curveSvg, eqSvg, heatHtml, ring, setArc, volSvg } from './charts';
+import { barMap, bandColor, curveSvg, dayBarsSvg, eqCurvesSvg, heatWeekHtml, mapPreviewSvg, ring, setArc, volSvg } from './charts';
 import { DOCS } from './docs';
 import { $, $$, esc, fmtDuration, notify } from './dom';
 
@@ -30,13 +30,17 @@ const ICON: Record<string, string> = {
   future: '<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
   report: '<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 15l3-3 2 2 3-4"/>',
 };
-const TABS: [string, string][] = [['map', '귀 지도'], ['recover', '회복'], ['home', '오늘'], ['future', '10년 뒤'], ['report', '리포트']];
+const TABS: [string, string][] = [['map', '음역'], ['recover', '회복'], ['home', '오늘'], ['future', '10년 뒤'], ['report', '리포트']];
 const track = $('#track'), lens = $('#lens');
 TABS.forEach(([id, l], i) => {
   const b = document.createElement('button');
   b.dataset.i = String(i);
   b.setAttribute('aria-label', l);
-  b.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[id]}</svg><span>${l}</span>`;
+  b.dataset.tab = id;
+  const svg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[id]}</svg>`;
+  // 오늘(홈)은 다른 탭과 구분되는 둥근 버튼
+  if (id === 'home') { b.className = 'home'; b.innerHTML = `<i class="hb">${svg}</i><span>${l}</span>`; }
+  else b.innerHTML = `${svg}<span>${l}</span>`;
   b.addEventListener('click', (e) => {
     if (e.detail === 0) go(id);
   });
@@ -76,6 +80,7 @@ function go(id: string, anim = true) {
   if (i < 0) return;
   const changedTab = i !== cur || !lens.dataset.on;
   cur = i;
+  track.dataset.cur = id;
   TABS.forEach(([t]) => ($('#' + t).hidden = t !== id));
   btns().forEach((b, k) => {
     b.classList.toggle('on', k === i);
@@ -172,21 +177,40 @@ function openDoc(k: string) {
 $('#docBack').onclick = () => ($('#doc').hidden = true);
 
 /* ---------------- 오늘 ---------------- */
-ring($('#homeRing'), `<div class="big"><span id="homePct">0</span><small>%</small></div>`, '주간 허용량');
+ring($('#homeRing'), `<div class="big"><span id="homePct">0</span><small>%</small></div>`, '일주일 권장량 중');
 ring($('#timerRing'), `<div class="big" id="clock" style="font-size:50px">30:00</div>`, `<span id="timerLbl"></span>`);
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+/** 이 속도로 들으면 언제 100%가 되는지 — 친근한 말로 */
 function projectionText(s: AppState): [string, string] {
   const p = s.gauge.projection;
   const nowMin = Math.floor(Date.now() / 60000);
-  if (s.gauge.safeEarPct >= 100 || (p.minute !== null && p.minute <= nowMin)) return ['넘었어요', '100% 예상'];
-  if (p.basisDays === 0) return ['–', '100% 예상'];
-  if (p.minute === null) return ['3일 안엔 없음', '100% 예상'];
+  if (s.gauge.safeEarPct >= 100 || (p.minute !== null && p.minute <= nowMin)) return ['다 찼어요', '쉬면 다시 내려가요'];
+  if (p.basisDays === 0) return ['살펴보는 중', '하루쯤 지나면 알려 드려요'];
+  if (p.minute === null) return ['3일 넘게 여유', '이 속도라면'];
   const d = new Date(p.minute * 60000);
   const today = new Date();
-  const day = d.toDateString() === today.toDateString() ? '오늘' : DOW[d.getDay()];
-  return [`${day} ${d.getHours()}시쯤`, '100% 예상'];
+  const tomorrow = new Date(today.getTime() + 86400000);
+  const day = d.toDateString() === today.toDateString() ? '오늘' : d.toDateString() === tomorrow.toDateString() ? '내일' : `${DOW[d.getDay()]}요일`;
+  const h = d.getHours();
+  const part = h < 5 ? '새벽' : h < 12 ? '오전' : h < 18 ? '오후' : '밤';
+  return [`${day} ${part}`, '이 속도면 다 차요'];
 }
+
+/** 남은 양을 '지금 크기로 몇 시간 더'로 바꾼다 */
+function remainingText(s: AppState): [string, string] {
+  const g = s.gauge, L = s.live;
+  const left = g.allowancePa2h * Math.max(0, 1 - g.safeEarPct / 100);
+  if (left <= 0) return ['0분', '오늘은 쉬어 가요'];
+  const live = L.counting && L.splA != null;
+  const level = live ? L.splA! : g.recentLaeq ?? 75;
+  const w = live ? L.kurtWeight : g.kurtWeightAvg || 1;
+  const hours = left / (pa2FromDb(level) * w);
+  const tx = hours >= 24 ? '하루 넘게' : hours >= 1 ? `약 ${Math.floor(hours)}시간${hours < 10 && hours % 1 >= 0.5 ? ' 반' : ''}` : `약 ${Math.max(1, Math.round(hours * 60))}분`;
+  return [tx, live ? '지금 크기로 남은 시간' : '평소 크기로 남은 시간'];
+}
+
+const betaWord = (b: number) => (b < 4 ? '부드러움' : b < 8 ? '보통' : '뾰족함');
 
 const OUT_LABEL: Record<OutputType, string> = { headphones: '이어폰', speaker: '스피커 · 제외', unknown: '미확인' };
 
@@ -194,7 +218,9 @@ function renderHome(s: AppState) {
   const g = s.gauge, L = s.live;
   $('#homePct').textContent = String(Math.round(g.safeEarPct));
   setArc($('#homeRing'), g.safeEarPct / 100);
-  $('#leftPct').textContent = `${Math.max(0, Math.round(100 - g.safeEarPct))}%`;
+  const [lt, ll] = remainingText(s);
+  $('#leftTx').textContent = lt;
+  $('#leftLbl').textContent = ll;
   const [pt, pl] = projectionText(s);
   $('#projTx').textContent = pt;
   $('#projLbl').textContent = pl;
@@ -214,7 +240,7 @@ function renderHome(s: AppState) {
   badge.className = 'badge ' + (st === 'running' ? 'b-live' : st === 'error' || st === 'unsupported' ? 'b-err' : 'b-off');
   badge.title = L.capture.message ?? '';
 
-  $('#liveSpl').textContent = L.splA != null ? `${Math.round(L.splA)} dBA` : '조용함';
+  $('#liveSpl').textContent = L.splA != null ? `${Math.round(L.splA)} dB` : '조용함';
   const v = L.volume;
   $('#liveVol').textContent = !v.available ? '읽지 못함' : v.muted ? '음소거' : v.scalar != null ? `${Math.round(v.scalar * 100)}%` : '–';
   $('#liveApp').textContent = L.app ?? '–';
@@ -246,23 +272,24 @@ function renderHome(s: AppState) {
     mk('#markHp', 'headphones');
     mk('#markSp', 'speaker');
   }
-  $('#tierTx').textContent =
-    L.capture.method === 'demo' ? '데모 소리' : '등급 B';
-
-  // 이중 게이지 (0~120% 축)
+  // 경고까지 남은 거리 (0~120% 축, 80% 주의 · 100% 한도)
   const ax = (p: number) => `${(Math.min(120, Math.max(0, p)) / 120) * 100}%`;
-  $('#dualBar').style.width = ax(g.safeEarPct);
-  $('#dualMk').style.left = ax(g.standardPct);
+  const pct = g.safeEarPct;
+  $('#dualBar').style.width = ax(pct);
+  $('#dualMk').style.left = ax(pct);
   const ticks = $$('#dual .tick');
   ticks[0].style.left = ax(80);
   ticks[1].style.left = ax(100);
-  $('#dualSe').textContent = `${Math.round(g.safeEarPct)}%`;
-  $('#dualStd').textContent = `${Math.round(g.standardPct)}%`;
+  $('#gaugeTx').innerHTML = pct >= 100
+    ? `한도를 넘었어요. <b>오늘은 쉬어 가요</b>`
+    : pct >= 80
+      ? `주의 구간이에요. 한도까지 <b>${Math.ceil(100 - pct)}%p</b>`
+      : `주의선까지 <b>${Math.ceil(80 - pct)}%p</b> 남았어요`;
 
   $('#stToday').innerHTML = fmtDuration(g.todayListenSec);
   $('#stTodayPct').innerHTML = `${Math.round(g.todayPct)}<small>%</small>`;
-  $('#stBeta').innerHTML = L.beta != null ? `${L.beta.toFixed(1)}<small>×${L.kurtWeight.toFixed(2)}</small>` : '–';
-  $('#stMode').innerHTML = `Mode ${g.mode}<small>${g.mode === 2 ? '75 dBA' : '80 dBA'}</small>`;
+  $('#stBeta').innerHTML = L.beta != null ? `${betaWord(L.beta)}<small>×${L.kurtWeight.toFixed(1)}</small>` : '–';
+  $('#stMode').innerHTML = g.mode === 2 ? `청소년<small>75 dB</small>` : `성인<small>80 dB</small>`;
 
   if (changed('dev', [g.devices, s.session.signedIn, s.sync])) {
     const box = $('#devShare');
@@ -283,13 +310,19 @@ function renderHome(s: AppState) {
   }
 }
 
-/* ---------------- 귀 지도 ---------------- */
+/* ---------------- 음역별 부담 ---------------- */
 function renderMap(s: AppState) {
   const g = s.gauge;
   if (!changed('map', [g.bands, g.bandCoverage])) return;
   $('#bigMap').innerHTML = barMap(g.bands, 340, 190, true);
   const max = Math.max(...g.bands);
   const avg = (a: number, b: number) => g.bands.slice(a, b + 1).reduce((x, y) => x + y, 0) / (b - a + 1) / (max || 1);
+  const top = g.bands.indexOf(max);
+  const hz = BAND_NOMINAL_HZ[top];
+  const ex = hz < 300 ? '베이스·드럼' : hz < 1000 ? '목소리·기타' : hz < 3000 ? '말소리·멜로디' : hz < 6500 ? '자음·심벌즈' : '하이햇·쇳소리';
+  $('#bandTop').innerHTML = max > 0
+    ? `가장 많이 들은 높이 <b>${hz >= 1000 ? +(hz / 1000).toFixed(2) + ' kHz' : hz + ' Hz'}</b><span>${ex} 높이예요</span>`
+    : '';
   $('#meter').innerHTML = ([['저음', '125~500 Hz', avg(0, 6)], ['중음', '630~2.5k', avg(7, 13)], ['고음', '3~8 kHz', avg(14, 18)]] as const)
     .map(([n, r, v]) => `<div class="r"><div><b>${n}</b><br><em>${r}</em></div><div class="track"><div class="fill" style="width:${(v * 100).toFixed(1)}%;background:${bandColor(v)}"></div></div><div class="p">${Math.round(v * 100)}</div></div>`)
     .join('');
@@ -375,24 +408,21 @@ lab.onChange = (playing) => {
   p.textContent = playing ? '■  정지' : '▶  재생';
   p.classList.toggle('ghost', playing);
 };
-const SEG: { id: Scenario['id']; t: string; good?: boolean }[] = [
-  { id: 'now', t: '지금' },
-  { id: 'keep', t: '10년 뒤' },
-  { id: 'down', t: '10년 뒤 −3 dB', good: true },
-];
-let segCur: Scenario['id'] = 'keep';
-SEG.forEach((a) => {
-  const b = document.createElement('button');
-  b.className = a.good ? 'good' : '';
-  b.dataset.id = a.id;
-  b.innerHTML = `<span class="t">${a.t}</span>`;
-  b.onclick = () => {
-    segCur = a.id;
-    lastSig.future = '';
-    if (S) renderFuture(S);
-  };
-  $('#seg').appendChild(b);
-});
+let earMode: 'now' | 'future' = 'future';
+const slYears = $('#slYears') as HTMLInputElement;
+const slVol = $('#slVol') as HTMLInputElement;
+const volWord = (d: number) =>
+  d === 0 ? '지금 그대로' : d <= -6 ? `많이 작게 (${d} dB)` : d < 0 ? `조금 작게 (${d} dB)` : d >= 6 ? `많이 크게 (+${d} dB)` : `조금 크게 (+${d} dB)`;
+const rerenderFuture = () => {
+  lastSig.future = '';
+  if (S) renderFuture(S);
+};
+$$<HTMLElement>('#earSeg button').forEach((b) => (b.onclick = () => {
+  earMode = b.dataset.ear as 'now' | 'future';
+  rerenderFuture();
+}));
+slYears.oninput = rerenderFuture;
+slVol.oninput = rerenderFuture;
 $('#play').onclick = () => lab.toggle();
 ($('#fileIn') as HTMLInputElement).onchange = async (e) => {
   const f = (e.target as HTMLInputElement).files?.[0];
@@ -404,42 +434,145 @@ $('#play').onclick = () => lab.toggle();
     notify({ type: 'warn', title: '이 파일은 재생할 수 없어요' });
   }
 };
+const freqLabel = (f: number) => (f >= 1000 ? `${f / 1000}k` : String(f));
 function renderFuture(s: AppState) {
-  const iso = s.gauge.iso;
-  if (!changed('future', [iso, segCur])) return;
-  [...$('#seg').children].forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.id === segCur));
-  const sc = iso.scenarios.find((x) => x.id === segCur) ?? null;
-  lab.setScenario(sc);
-  $('#eq').innerHTML = iso.scenarios.length ? eqSvg(iso.scenarios, segCur) : `<div class="empty">기록 없음</div>`;
-  const at4k = (id: Scenario['id']) => iso.scenarios.find((x) => x.id === id)?.points.find((p) => p.freq === 4000)?.db ?? 0;
-  const k4 = (id: Scenario['id']) => (at4k(id) < 0.5 ? '4 kHz 변화 거의 없음' : `4 kHz −${at4k(id).toFixed(1)} dB`);
-  $('#eqnote').textContent = iso.lex8h == null || segCur === 'now' ? '' : k4(segCur);
-  if (iso.lex8h == null) {
+  const lex = s.gauge.iso.lex8h;
+  const years = Number(slYears.value), d = Number(slVol.value);
+  if (!changed('future', [lex == null ? null : Math.round(lex * 10), years, d, earMode])) return;
+  $('#slYearsTx').textContent = `${years}년 뒤`;
+  $('#slVolTx').textContent = volWord(d);
+  $$<HTMLElement>('#earSeg button').forEach((b) => b.classList.toggle('on', b.dataset.ear === earMode));
+  $('#sliders').classList.toggle('off', earMode === 'now' || lex == null);
+  slYears.disabled = slVol.disabled = earMode === 'now' || lex == null;
+  if (lex == null) {
+    lab.setScenario(null);
+    $('#eq').innerHTML = `<div class="empty">이어폰으로 들은 기록이 생기면 계산해요</div>`;
+    $('#eqnote').textContent = '';
     $('#isoHint').textContent = '';
     $('#isoTbl').innerHTML = '';
-  } else {
-    $('#isoHint').innerHTML = `L<sub>EX,8h</sub> ${iso.lex8h.toFixed(1)} dB`;
-    const keep = iso.scenarios.find((x) => x.id === 'keep')!.points;
-    const down = iso.scenarios.find((x) => x.id === 'down')!.points;
-    $('#isoTbl').innerHTML = `<tr><th>주파수</th>${keep.map((p) => `<th>${p.freq >= 1000 ? p.freq / 1000 + 'k' : p.freq}</th>`).join('')}</tr>
-      <tr><td>그대로</td>${keep.map((p) => `<td>${p.db.toFixed(1)}</td>`).join('')}</tr>
-      <tr><td>−3 dB</td>${down.map((p) => `<td>${p.db.toFixed(1)}</td>`).join('')}</tr>`;
+    return;
   }
+  const ref = niptsCurve(lex, 10);
+  const cur = earMode === 'now' ? ref.map((p) => ({ ...p, db: 0 })) : niptsCurve(lex + d, years);
+  lab.setScenario({ id: 'keep', deltaDb: d, points: cur });
+  $('#eq').innerHTML = eqCurvesSvg([
+    { points: ref, color: 'var(--faint)', width: 1.4, dash: true },
+    { points: cur, color: earMode === 'now' ? 'var(--faint)' : d < 0 ? 'var(--teal)' : 'var(--hot)', width: 3 },
+  ]);
+  const k4 = cur.find((p) => p.freq === 4000)?.db ?? 0;
+  $('#eqnote').textContent = earMode === 'now' ? '지금 내 귀로 듣는 소리예요' : k4 < 0.5 ? '4 kHz 쪽은 거의 그대로예요' : `4 kHz 소리가 ${k4.toFixed(1)} dB 작게 들려요`;
+  $('#isoHint').textContent = `평소 크기 ${Math.round(lex)} dB 기준`;
+  $('#isoTbl').innerHTML = `<tr><th>높이</th>${ref.map((p) => `<th>${freqLabel(p.freq)}</th>`).join('')}</tr>
+    <tr><td>지금처럼 10년</td>${ref.map((p) => `<td>${p.db.toFixed(1)}</td>`).join('')}</tr>
+    <tr class="mine"><td>고른 조건</td>${cur.map((p) => `<td>${p.db.toFixed(1)}</td>`).join('')}</tr>`;
 }
 
 /* ---------------- 리포트 ---------------- */
+const BLOCKS: [number, number, string][] = [[0, 5, '새벽'], [5, 9, '아침'], [9, 12, '오전'], [12, 17, '오후'], [17, 21, '저녁'], [21, 24, '밤']];
+const dayName = (g: AppState['gauge'], i: number) => (i === 6 ? '오늘' : i === 5 ? '어제' : `${g.days[i]?.dow ?? ''}요일`);
+
+/** 한 주를 한 문장으로 */
+function quoteSentence(g: AppState['gauge']): string {
+  const total = g.days.reduce((a, d) => a + d.listenSec, 0);
+  if (total < 120) return '조용한 한 주였어요. 귀도 푹 쉬었을 거예요.';
+  let best = { v: -1, day: 0, block: '' };
+  g.heat.forEach((hours, di) => BLOCKS.forEach(([a, b, name]) => {
+    const v = hours.slice(a, b).reduce((x, y) => x + y, 0);
+    if (v > best.v) best = { v, day: di, block: name };
+  }));
+  const busy = `${dayName(g, best.day)} ${best.block}`;
+  const app = g.apps.find((a) => a.label !== '그 밖의 앱')?.label;
+  const vt = g.volumeTrend;
+  if (vt.length >= 3 && vt[vt.length - 1].avg - vt[0].avg >= 5) return `볼륨이 조금씩 올라가고 있어요. ${busy}엔 한 번 쉬어 가요.`;
+  if (g.safeEarPct >= 80) return `${busy}, 귀가 가장 바빴어요. 이번 주는 조금 쉬어 가요.`;
+  return app ? `이번 주 귀가 가장 바빴던 때는 ${busy}, 주인공은 ${app}.` : `이번 주 귀가 가장 바빴던 때는 ${busy}.`;
+}
+
+let heatView: 'week' | 'day' = 'week';
+let dayIdx = 6;
+const rerenderReport = () => {
+  lastSig.heat = '';
+  if (S) renderReport(S);
+};
+$$<HTMLElement>('#heatSeg button').forEach((b) => (b.onclick = () => {
+  heatView = b.dataset.hv as 'week' | 'day';
+  rerenderReport();
+}));
+$('#dayPrev').onclick = () => { dayIdx = Math.max(0, dayIdx - 1); rerenderReport(); };
+$('#dayNext').onclick = () => { dayIdx = Math.min(6, dayIdx + 1); rerenderReport(); };
+const durTx = (sec: number) => {
+  const m = Math.round(sec / 60);
+  return m < 1 ? '안 들었어요' : m < 60 ? `${m}분 들었어요` : `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''} 들었어요`;
+};
+
 function renderReport(s: AppState) {
   const g = s.gauge;
-  if (changed('heat', [g.heat, g.heatDays])) {
-    $('#heat').innerHTML = heatHtml(g.heat, g.heatDays.length ? g.heatDays : ['', '', '', '', '', '', '']);
+  if (changed('quote', [g.days, g.apps[0]?.label, g.volumeTrend.length, Math.round(g.safeEarPct / 10)])) {
+    $('#quoteTx').textContent = quoteSentence(g);
+    $('#quoteBy').textContent = g.days.length ? `${g.days[0].date} – ${g.days[6].date}, 나의 귀` : '';
+  }
+  if (changed('heat', [g.heat, g.days, heatView, dayIdx])) {
+    $$<HTMLElement>('#heatSeg button').forEach((b) => b.classList.toggle('on', b.dataset.hv === heatView));
+    $('#heatWeek').hidden = heatView !== 'week';
+    $('#heatDay').hidden = heatView !== 'day';
+    if (heatView === 'week') $('#heat').innerHTML = heatWeekHtml(g.heat, g.days.map((d, i) => ({ top: i === 6 ? '오늘' : d.dow, sub: d.date })));
+    else {
+      const d = g.days[dayIdx];
+      $('#dayTitle').textContent = d ? `${d.date} ${dayName(g, dayIdx) === '오늘' || dayName(g, dayIdx) === '어제' ? dayName(g, dayIdx) : d.dow + '요일'}` : '–';
+      $('#daySub').textContent = d ? durTx(d.listenSec) : '';
+      ($('#dayPrev') as HTMLButtonElement).disabled = dayIdx === 0;
+      ($('#dayNext') as HTMLButtonElement).disabled = dayIdx === 6;
+      $('#dayBars').innerHTML = dayBarsSvg(g.heat[dayIdx] ?? new Array(24).fill(0), Math.max(0, ...g.heat.flat()));
+    }
   }
   if (changed('apps', g.apps)) {
     const COL = ['var(--hot)', 'var(--amber)', 'var(--teal)', 'var(--blue)'];
     $('#stack').innerHTML = g.apps.length ? g.apps.map((c, i) => `<div style="width:${c.pct}%;background:${COL[i % 4]}"></div>`).join('') : '';
-    $('#stackLg').innerHTML = g.apps.map((c, i) => `<span><i style="background:${COL[i % 4]}"></i>${esc(c.label)} ${Math.round(c.pct)}%</span>`).join('');
+    $('#stackLg').innerHTML = g.apps.length
+      ? g.apps.map((c, i) => `<span><i style="background:${COL[i % 4]}"></i>${esc(c.label)} ${Math.round(c.pct)}%</span>`).join('')
+      : `<span>아직 기록이 없어요</span>`;
   }
-  if (changed('vol', g.volumeTrend)) $('#vol').innerHTML = volSvg(g.volumeTrend);
+  if (changed('vol', g.volumeTrend)) {
+    $('#vol').innerHTML = volSvg(g.volumeTrend);
+    const vt = g.volumeTrend;
+    const diff = vt.length >= 2 ? Math.round(vt[vt.length - 1].avg - vt[0].avg) : 0;
+    $('#volTx').textContent = vt.length < 2 ? '' : diff >= 3 ? `${vt[0].day}보다 ${diff}%p 올랐어요` : diff <= -3 ? `${vt[0].day}보다 ${-diff}%p 내렸어요` : '거의 그대로예요';
+  }
+  if (!mapStarted) {
+    mapStarted = true;
+    loadMap();
+  }
 }
+
+/* 가까운 이비인후과 지도 — 앱에서는 네이버 지도(모바일)를 상자 안에 띄운다 */
+const MOBILE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+let mapStarted = false;
+const regionIn = $('#mapRegion') as HTMLInputElement;
+try { regionIn.value = localStorage.getItem('safeear.mapRegion') ?? ''; } catch { /* 저장소를 못 써도 괜찮다 */ }
+const mapQuery = () => `${regionIn.value.trim() ? regionIn.value.trim() + ' ' : ''}이비인후과`;
+function loadMap() {
+  try { localStorage.setItem('safeear.mapRegion', regionIn.value.trim()); } catch { /* */ }
+  const box = $('#mapBox');
+  if (api.env !== 'electron') {
+    box.innerHTML = mapPreviewSvg() + `<span class="mapchip">앱에서는 네이버 지도가 열려요</span>`;
+    return;
+  }
+  const src = `https://m.map.naver.com/search2/search.naver?query=${encodeURIComponent(mapQuery())}`;
+  const wv = box.querySelector('webview') as (HTMLElement & { loadURL(u: string): Promise<void> }) | null;
+  if (wv) { void wv.loadURL(src).catch(() => undefined); return; }
+  box.classList.remove('loaded', 'failed');
+  box.innerHTML = `<webview partition="persist:naver-map" useragent="${MOBILE_UA}" src="${src}"></webview><span class="mapchip wait">지도 불러오는 중</span>`;
+  const el = box.querySelector('webview')!;
+  el.addEventListener('did-finish-load', () => box.classList.add('loaded'));
+  el.addEventListener('did-fail-load', (e) => {
+    if ((e as unknown as { isMainFrame?: boolean }).isMainFrame === false) return;
+    box.classList.add('failed');
+    box.innerHTML = mapPreviewSvg() + `<span class="mapchip">지도를 불러오지 못했어요. 아래 버튼으로 열어 보세요</span>`;
+  });
+}
+$('#mapGo').onclick = loadMap;
+regionIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadMap(); });
+$('#mapOpen').onclick = () => void api.openExternal(`https://map.naver.com/p/search/${encodeURIComponent(mapQuery())}`);
 
 /* ---------------- 프로필 ---------------- */
 const initial = (n: string) => (n || '?').trim().charAt(0) || '?';

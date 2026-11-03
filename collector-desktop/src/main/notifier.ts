@@ -36,7 +36,7 @@ export class Notifier {
   /** 1초마다 호출 */
   check(g: GaugeView, live: LiveState): void {
     const s = this.settings.value;
-    const pct = Math.max(g.safeEarPct, g.standardPct);
+    const pct = g.safeEarPct;
     for (const level of [80, 100]) {
       if (!this.warned[level] && pct >= level) {
         this.warned[level] = true;
@@ -75,10 +75,9 @@ export class Notifier {
   }
 
   private warn(level: number, g: GaugeView): void {
-    const which = g.safeEarPct >= g.standardPct ? 'SafeEar 계산' : '기존 방식(등에너지) 계산';
     const n = this.show(
-      `최근 7일 허용 선량의 ${level}%를 썼어요`,
-      `${which} 기준이에요. 볼륨을 조금 낮추거나 쉬어 가면 내려가요.`,
+      level >= 100 ? '이번 주 권장량을 다 썼어요' : `이번 주 권장량의 ${level}%를 썼어요`,
+      level >= 100 ? '오늘은 이어폰을 쉬게 해 주세요. 쉬면 조금씩 내려가요.' : '볼륨을 조금 낮추거나 잠깐 쉬어 가요.',
       'home',
       () => this.acknowledge(),
     );
@@ -109,7 +108,7 @@ export class Notifier {
     const top = g.apps[0];
     this.show(
       '주간 리포트가 준비됐어요',
-      `최근 7일 ${Math.round(g.safeEarPct)}% (기존 방식 ${Math.round(g.standardPct)}%)` + (top ? ` · 가장 많이 쓴 곳: ${top.label}` : ''),
+      `이번 주 권장량의 ${Math.round(g.safeEarPct)}%를 썼어요` + (top ? ` · 가장 많이 들은 곳: ${top.label}` : ''),
       'report',
     );
   }

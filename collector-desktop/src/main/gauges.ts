@@ -5,6 +5,7 @@ import { hostname } from 'node:os';
 import {
   BAND_COUNT,
   DEFAULT_RECOVERY,
+  dbFromPa2,
   doseAfterRest,
   fatigueCurve,
   integrate,
@@ -73,8 +74,11 @@ export class GaugeService {
       bands: new Array(BAND_COUNT).fill(0),
       bandCoverage: 0,
       devices: [],
-      heat: Array.from({ length: 7 }, () => new Array(12).fill(0)),
+      heat: Array.from({ length: 7 }, () => new Array(24).fill(0)),
       heatDays: [],
+      days: [],
+      recentLaeq: null,
+      kurtWeightAvg: 1,
       apps: [],
       volumeTrend: [],
       iso: { lex8h: null, scenarios: [] },
@@ -210,24 +214,32 @@ export class GaugeService {
       }))
       .sort((a, b) => b.pct - a.pct);
 
-    // 요일 × 2시간 히트맵 (현지 시각, 마지막 줄이 오늘)
-    const heat = Array.from({ length: 7 }, () => new Array(12).fill(0));
-    const heatDays: string[] = [];
+    // 요일 × 1시간 히트맵 (현지 시각, 마지막 줄이 오늘)
+    const heat = Array.from({ length: 7 }, () => new Array(24).fill(0));
     const day0 = new Date(nowMs);
     day0.setHours(0, 0, 0, 0);
     day0.setDate(day0.getDate() - 6);
     const DOW = ['일', '월', '화', '수', '목', '금', '토'];
-    for (let i = 0; i < 7; i++) {
+    const days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(day0);
       d.setDate(day0.getDate() + i);
-      heatDays.push(DOW[d.getDay()]);
-    }
+      return { date: `${d.getMonth() + 1}/${d.getDate()}`, dow: DOW[d.getDay()], listenSec: 0, kurt: 0 };
+    });
+    let sumEeh = 0, sumSec = 0, sumKurt = 0;
     for (const m of merged.values()) {
+      sumEeh += m.eeh;
+      sumKurt += m.kurt;
+      sumSec += m.listenSeconds;
       const dt = new Date(m.minute * 60000);
       const dayIdx = Math.floor((new Date(dt).setHours(0, 0, 0, 0) - day0.getTime()) / 86400_000 + 0.5);
       if (dayIdx < 0 || dayIdx > 6) continue;
-      heat[dayIdx][Math.floor(dt.getHours() / 2)] += m.kurt;
+      heat[dayIdx][dt.getHours()] += m.kurt;
+      days[dayIdx].listenSec += m.listenSeconds;
+      days[dayIdx].kurt += m.kurt;
     }
+    const heatDays = days.map((d) => d.dow);
+    const recentLaeq = sumSec > 0 ? dbFromPa2((sumEeh * 3600) / sumSec) : null;
+    const kurtWeightAvg = sumEeh > 0 ? sumKurt / sumEeh : 1;
 
     // 무엇으로 들었나: 이 기기는 앱 이름, 다른 기기는 범주
     const byLabel = new Map<string, number>();
@@ -286,6 +298,9 @@ export class GaugeService {
       devices,
       heat,
       heatDays,
+      days,
+      recentLaeq,
+      kurtWeightAvg,
       apps,
       volumeTrend,
       iso: { lex8h, scenarios },

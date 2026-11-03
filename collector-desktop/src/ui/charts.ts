@@ -95,10 +95,11 @@ export function gainAt(points: Scenario['points'], f: number): number {
   return 0;
 }
 
-export function eqSvg(scenarios: Scenario[], active: string): string {
+/** 여러 EQ 곡선을 한 그래프에 (점선 = 비교 기준) */
+export function eqCurvesSvg(curves: { points: Scenario['points']; color: string; width: number; dash?: boolean }[]): string {
   const w = 340, h = 120, L = 30;
   const fmin = Math.log10(200), fmax = Math.log10(16000);
-  const worst = Math.max(0, ...scenarios.flatMap((s) => s.points.map((p) => p.db)));
+  const worst = Math.max(0, ...curves.flatMap((c) => c.points.map((p) => p.db)));
   const gmin = -Math.max(10, Math.ceil((worst + 2) / 5) * 5), gmax = 3;
   const X = (f: number) => L + ((Math.log10(f) - fmin) / (fmax - fmin)) * (w - L - 4);
   const Y = (g: number) => h - ((g - gmin) / (gmax - gmin)) * h;
@@ -106,15 +107,13 @@ export function eqSvg(scenarios: Scenario[], active: string): string {
   const step = gmin <= -20 ? 10 : 5;
   for (let g = 0; g >= gmin; g -= step) s += `<line class="grid" x1="${L}" x2="${w - 4}" y1="${Y(g)}" y2="${Y(g)}"/><text class="axl" x="${L - 6}" y="${Y(g) + 3}" text-anchor="end">${g}</text>`;
   s += `<line x1="${X(4000)}" x2="${X(4000)}" y1="0" y2="${h}" stroke-dasharray="3 3" style="stroke:var(--hot);opacity:.5"/>`;
-  const COL: Record<string, string> = { now: 'var(--dimmer)', keep: 'var(--hot)', down: 'var(--teal)' };
-  for (const sc of scenarios) {
-    const on = sc.id === active;
+  for (const c of curves) {
     let d = '';
     for (let i = 0; i <= 120; i++) {
       const f = Math.pow(10, lerp(fmin, fmax, i / 120));
-      d += (i ? ' L' : 'M') + X(f).toFixed(1) + ',' + Y(Math.max(gmin, gainAt(sc.points, f))).toFixed(1);
+      d += (i ? ' L' : 'M') + X(f).toFixed(1) + ',' + Y(Math.max(gmin, gainAt(c.points, f))).toFixed(1);
     }
-    s += `<path d="${d}" fill="none" style="stroke:${COL[sc.id]}" stroke-width="${on ? 3 : 1.4}" stroke-linejoin="round" opacity="${on ? 1 : 0.3}"/>`;
+    s += `<path d="${d}" fill="none" style="stroke:${c.color}" stroke-width="${c.width}" stroke-linejoin="round" stroke-linecap="round"${c.dash ? ' stroke-dasharray="4 4" opacity=".7"' : ''}/>`;
   }
   ([['500', 500], ['1k', 1000], ['4k', 4000], ['8k', 8000]] as const).forEach(([l, f]) => {
     s += `<text class="axl ${f === 4000 ? 'hot' : ''}" x="${X(f)}" y="${h + 15}" text-anchor="middle">${l}</text>`;
@@ -122,17 +121,53 @@ export function eqSvg(scenarios: Scenario[], active: string): string {
   return s + '</svg>';
 }
 
-export function heatHtml(heat: number[][], days: string[]): string {
-  const max = Math.max(0, ...heat.flat());
-  let h = `<div></div>` + days.map((d) => `<div class="d ${d === '토' || d === '일' ? 'we' : ''}">${d}</div>`).join('');
-  for (let y = 0; y < 12; y++) {
-    h += `<div class="t">${y % 3 === 0 ? y * 2 + '시' : ''}</div>`;
-    for (let x = 0; x < 7; x++) {
-      const v = max > 0 ? (heat[x]?.[y] ?? 0) / max : 0;
-      h += v < 0.03 ? `<div class="c"></div>` : `<div class="c" style="background:var(--hot);opacity:${(0.14 + v * 0.86).toFixed(2)}"></div>`;
+const BLOCK_ROWS: [number, number, string][] = [[0, 5, '새벽'], [5, 9, '아침'], [9, 12, '오전'], [12, 17, '오후'], [17, 21, '저녁'], [21, 24, '밤']];
+
+/** 한 주 전체: 7일 × 6개 시간대 (오래된 날 → 오늘) */
+export function heatWeekHtml(heat: number[][], cols: { top: string; sub: string }[]): string {
+  const cell = (di: number, a: number, b: number) => (heat[di] ?? []).slice(a, b).reduce((x, y) => x + y, 0);
+  let max = 0;
+  for (let di = 0; di < 7; di++) for (const [a, b] of BLOCK_ROWS) max = Math.max(max, cell(di, a, b));
+  let h = `<div></div>` + cols.map((c, i) => `<div class="hd${i === 6 ? ' today' : ''}"><b>${c.top}</b><span>${c.sub}</span></div>`).join('');
+  for (const [a, b, name] of BLOCK_ROWS) {
+    h += `<div class="t">${name}</div>`;
+    for (let di = 0; di < 7; di++) {
+      const v = max > 0 ? cell(di, a, b) / max : 0;
+      h += v < 0.03 ? `<div class="c"></div>` : `<div class="c" style="--v:${(0.18 + v * 0.82).toFixed(2)}"></div>`;
     }
   }
   return h;
+}
+
+/** 요일별: 그날 24시간 막대 (한 주 최댓값 기준이라 다른 날과 비교돼요) */
+export function dayBarsSvg(hours: number[], weekMax: number): string {
+  if (!hours.some((v) => v > 0)) return `<div class="empty">이 날은 이어폰으로 듣지 않았어요</div>`;
+  const w = 340, h = 120, bw = w / 24;
+  const top = hours.indexOf(Math.max(...hours));
+  let s = `<svg viewBox="0 0 ${w} ${h + 20}" width="100%"><line class="grid" x1="0" x2="${w}" y1="${h}" y2="${h}"/>`;
+  hours.forEach((v, i) => {
+    if (v <= 0) return;
+    const bh = Math.max(3, (v / (weekMax || 1)) * (h - 8));
+    s += `<rect x="${(i * bw + 1.5).toFixed(1)}" y="${(h - bh).toFixed(1)}" width="${(bw - 3).toFixed(1)}" height="${bh.toFixed(1)}" rx="3" style="fill:${i === top ? 'var(--hot)' : 'var(--blue)'};opacity:${i === top ? 1 : 0.75}"/>`;
+  });
+  [0, 6, 12, 18].forEach((hr) => (s += `<text class="axl" x="${hr * bw + 2}" y="${h + 15}">${hr}시</text>`));
+  s += `<text class="axl" x="${w}" y="${h + 15}" text-anchor="end">24시</text>`;
+  return s + '</svg>';
+}
+
+/** 미리보기용 지도 그림 (실제 지도는 앱에서 네이버 지도로) */
+export function mapPreviewSvg(): string {
+  const pins = [[96, 78], [214, 58], [252, 132]];
+  return `<svg class="mapsvg" viewBox="0 0 340 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="340" height="200" style="fill:var(--map-land)"/>
+    <path d="M-10 150 C60 130 110 170 180 150 S300 120 350 140 L350 210 L-10 210Z" style="fill:var(--map-water)"/>
+    <rect x="20" y="20" width="60" height="38" rx="8" style="fill:var(--map-park)"/>
+    <rect x="270" y="20" width="56" height="52" rx="8" style="fill:var(--map-park)"/>
+    <path d="M0 100 H340 M150 0 V200 M0 40 L340 90 M240 0 L300 200" style="stroke:var(--map-road);stroke-width:7;fill:none;stroke-linecap:round"/>
+    <path d="M60 0 V200 M0 170 H340 M200 0 V200" style="stroke:var(--map-road);stroke-width:3.5;fill:none;opacity:.8"/>
+    ${pins.map(([x, y]) => `<g transform="translate(${x} ${y})"><path d="M0 0c-7-9-11-14-11-19a11 11 0 0 1 22 0c0 5-4 10-11 19Z" style="fill:var(--blue)"/><circle cy="-19" r="4" fill="#fff"/></g>`).join('')}
+    <circle cx="160" cy="112" r="14" style="fill:var(--blue);opacity:.18"/><circle cx="160" cy="112" r="6" style="fill:var(--blue);stroke:#fff;stroke-width:2.5"/>
+  </svg>`;
 }
 
 export function volSvg(trend: { day: string; avg: number }[]): string {

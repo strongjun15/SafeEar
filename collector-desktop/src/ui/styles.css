@@ -463,3 +463,146 @@ button.row:active::before{opacity:1}
   *,*::before,*::after{animation:none!important;transition-property:background-color,border-color,color,opacity,box-shadow,filter!important}
   :is(.btn,.gbtn,.iconbtn,.herobtn,.seg2 button,.tabs2 button):is(:active,:hover){transform:none!important}
 }
+
+/* =================== 구성 개선 (오늘 · 10년 뒤 · 리포트 · 설명) =================== */
+
+/* 지도 색 */
+:root{--map-land:#eef1ea;--map-road:#ffffff;--map-water:#cfe3f5;--map-park:#d7ecd1}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--map-land:#1d2026;--map-road:#363b46;--map-water:#1b2c40;--map-park:#1f3326}}
+:root[data-theme="dark"]{--map-land:#1d2026;--map-road:#363b46;--map-water:#1b2c40;--map-park:#1f3326}
+
+/* 오늘(홈) 탭: 가운데 떠오른 둥근 버튼 */
+.dock button.home{overflow:visible}
+.dock button.home .hb{display:grid;place-items:center;width:50px;height:50px;margin-top:-26px;border-radius:50%;color:#fff;
+  background:linear-gradient(150deg,color-mix(in srgb,var(--blue) 76%,#fff) 0%,var(--blue) 50%,var(--blue-d) 100%);
+  border:3px solid color-mix(in srgb,var(--solid) 85%,transparent);
+  box-shadow:0 8px 20px color-mix(in srgb,var(--blue) 38%,transparent),inset 0 1px 0 rgba(255,255,255,.5);
+  transition:transform var(--sp-t) var(--sp-ease),box-shadow var(--hv-t) ease-out}
+.dock button.home span{margin-top:2px}
+.dock button.home.on{color:var(--blue-t)}
+.dock button.home.on .hb{transform:scale(1.08);box-shadow:0 10px 26px color-mix(in srgb,var(--blue) 50%,transparent),0 0 0 5px color-mix(in srgb,var(--blue) 16%,transparent),inset 0 1px 0 rgba(255,255,255,.5)}
+.dock button.home::before{display:none}
+.lens{transition:transform .42s cubic-bezier(.3,1.22,.45,1),width .35s var(--ease),height .35s var(--ease),opacity .2s ease-out}
+.dock[data-cur="home"]:not(.drag) .lens{opacity:0}
+
+/* 「?」 버튼 */
+.qbtn{position:relative;isolation:isolate;flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;
+  color:var(--blue-t);background:var(--glass-2);border:1px solid var(--glass-bd);box-shadow:inset 0 1px 0 var(--glass-hi);
+  transition:background-color var(--hv-t) ease-out,transform var(--sp-t) var(--sp-ease)}
+.qbtn:active{transform:scale(1.08)}
+@media (hover:hover){.qbtn:hover{background:var(--hv-bg)}}
+.qbtn.on-accent{position:absolute;top:14px;right:14px;z-index:2;color:#fff;background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.35)}
+@media (hover:hover){.qbtn.on-accent:hover{background:rgba(255,255,255,.32)}}
+.qi{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;margin-left:3px;font-size:10.5px;font-style:normal;font-weight:700;
+  color:var(--blue-t);background:var(--blue-2);vertical-align:1px}
+button.more{font:inherit;font-size:13px;font-weight:600;color:var(--blue-t)}
+
+/* 경고까지 남은 거리 */
+.dual .mk b{font-weight:600}
+.dual .tick{font-family:var(--f-ui);font-size:11px;font-weight:600}
+.gaugetx{font-size:14.5px}
+.gaugetx b{font-family:var(--f-num);font-weight:700;color:var(--blue-t)}
+.stat .v small{white-space:nowrap}
+
+/* 음역별 부담: 가장 많이 들은 높이 */
+.bandtop{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:12px;font-size:14px}
+.bandtop:empty{display:none}
+.bandtop b{font-family:var(--f-num);font-size:17px;color:var(--blue-t)}
+.bandtop span{font-size:13px;color:var(--sub)}
+
+/* 2칸 분할 버튼 */
+.seg2.two{grid-template-columns:1fr 1fr;margin-top:12px}
+
+/* 10년 뒤: 슬라이더 */
+.sliders{display:flex;flex-direction:column;gap:6px;margin-top:14px;transition:opacity .2s ease-out}
+.sliders.off{opacity:.4}
+.sl{display:grid;grid-template-columns:36px 1fr minmax(0,auto);align-items:center;gap:12px;min-height:40px}
+.slk{font-size:13.5px;font-weight:600;color:var(--sub)}
+.sl b{font-size:14px;font-weight:600;white-space:nowrap;text-align:right;min-width:92px}
+.sl input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;cursor:pointer}
+.sl input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:var(--tint)}
+.sl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-9px;border-radius:50%;background:#fff;
+  border:1px solid rgba(0,0,0,.04);box-shadow:0 3px 8px rgba(0,0,0,.18),0 0 0 4px color-mix(in srgb,var(--blue) 20%,transparent)}
+.sl input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:var(--tint)}
+.sl input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fff;border:none;box-shadow:0 3px 8px rgba(0,0,0,.18)}
+.sl input[type=range]:disabled{cursor:default}
+.lex{font-size:12.5px;font-weight:600;color:var(--sub);white-space:nowrap}
+.tbl tr.mine td{color:var(--blue-t);font-weight:700}
+
+/* 리포트: 한 문장 요약 (명언 카드) */
+.quote{position:relative;margin:0;padding:30px 28px 22px;border-radius:26px;text-align:center;overflow:hidden;isolation:isolate;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--blue) 12%,var(--glass)) 0%,var(--glass) 60%);
+  border:1px solid var(--glass-bd);box-shadow:var(--glass-sh),inset 0 1px 0 var(--glass-hi);
+  -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%)}
+.quote .qm{position:absolute;font-family:"Gowun Batang",Georgia,"Times New Roman",serif;font-size:84px;line-height:1;color:var(--blue);opacity:.28;pointer-events:none}
+.quote .qm.open{top:6px;left:16px}
+.quote .qm.close{bottom:-28px;right:16px}
+.quote blockquote{margin:0;font-family:"Gowun Batang","Noto Serif KR",serif;font-size:clamp(18px,5.2vw,21px);font-weight:700;line-height:1.6;
+  letter-spacing:-.02em;text-wrap:balance;word-break:keep-all}
+.quote figcaption{margin-top:14px;font-size:12.5px;color:var(--sub);letter-spacing:.02em}
+
+/* 언제 많이 들었나: 한 주 전체 */
+.heat{grid-template-columns:38px repeat(7,1fr);gap:5px;margin-top:14px}
+.heat .hd{display:flex;flex-direction:column;align-items:center;line-height:1.25;padding-bottom:2px}
+.heat .hd b{font-size:12.5px;font-weight:700}
+.heat .hd span{font-family:var(--f-num);font-size:10.5px;color:var(--faint)}
+.heat .hd.today b{color:var(--blue-t)}
+.heat .t{font-family:var(--f-ui);font-size:11.5px;color:var(--sub);line-height:26px;text-align:left;padding:0}
+.heat .c{height:26px;border-radius:8px;background:var(--tint);position:relative;overflow:hidden}
+.heat .c[style]::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--hot);opacity:var(--v)}
+.heatlg{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px;font-size:11.5px;color:var(--sub)}
+.heatlg i{width:72px;height:8px;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--hot) 15%,var(--tint)),var(--hot))}
+/* 요일별 */
+.daynav{display:flex;align-items:center;gap:10px;margin:14px 0 6px}
+.daynav .iconbtn{width:36px;height:36px;font-size:20px;font-weight:500;color:var(--blue-t)}
+.daynav .iconbtn:disabled{opacity:.35;cursor:default}
+.dayttl{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;line-height:1.35}
+.dayttl b{font-size:16px;font-weight:700}
+.dayttl span{font-size:13px;color:var(--sub)}
+
+/* 귀가 걱정된다면 */
+.care h3{margin-bottom:12px}
+.signs{display:flex;flex-direction:column;gap:8px}
+.sign{display:flex;align-items:center;gap:12px;font-size:14.5px}
+.sign p b{font-weight:700}
+.si{flex:0 0 auto;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--blue-2);color:var(--blue-t)}
+.urgent{margin-top:12px;padding:11px 14px;border-radius:14px;background:var(--hotsoft);font-size:13.5px;line-height:1.5}
+.urgent b{color:var(--hot)}
+.mapbox{position:relative;margin-top:14px;height:230px;border-radius:18px;overflow:hidden;background:var(--map-land);border:1px solid var(--glass-bd)}
+.mapbox webview{display:flex;width:100%;height:100%}
+.mapbox .mapsvg{display:block;width:100%;height:100%}
+.mapchip{position:absolute;left:10px;right:10px;bottom:10px;padding:7px 12px;border-radius:999px;font-size:12.5px;font-weight:600;text-align:center;
+  background:color-mix(in srgb,var(--solid) 82%,transparent);box-shadow:0 4px 14px rgba(0,0,0,.12);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.mapbox.loaded .mapchip.wait{display:none}
+.maprow{display:flex;gap:8px;margin-top:10px}
+.maprow input{flex:1;min-width:0;height:44px;border-radius:999px;padding:0 16px;font-size:15px;background:var(--glass-2);border:1px solid var(--glass-bd)}
+.maprow input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 4px color-mix(in srgb,var(--blue) 18%,transparent)}
+.maprow .btn{height:44px}
+
+/* 「?」 설명 */
+.docbody{font-size:15px;line-height:1.7}
+.docbody .dlead{font-size:18px;font-weight:700;line-height:1.55;letter-spacing:-.02em;color:var(--ink);margin-bottom:6px;text-wrap:balance}
+.docbody .dlead b{color:var(--blue-t)}
+.docbody h4{font-size:15.5px;font-weight:700;margin:22px 0 6px;display:flex;align-items:center;gap:8px}
+.docbody p{color:var(--ink);opacity:.86}
+.docbody p b,.docbody li b{color:var(--ink);opacity:1}
+.docbody .dlist{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px}
+.docbody .dlist li{position:relative;padding-left:18px;color:var(--ink);opacity:.86}
+.docbody .dlist li::before{content:"";position:absolute;left:2px;top:.72em;width:7px;height:7px;border-radius:50%;background:var(--blue)}
+.docbody .dex{margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--blue-2);line-height:1.8}
+.docbody .dtip{margin-top:22px;padding:13px 15px;border-radius:16px;background:var(--tint)}
+.docbody .dtip b{display:block;font-size:13px;margin-bottom:2px}
+.docbody .dtip p{font-size:14px}
+.docbody .dsrc{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.docbody .dsrc span{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--tint);color:var(--sub)}
+.docbody .dtbl{width:100%;border-collapse:collapse;margin-top:6px;font-size:14px}
+.docbody .dtbl th,.docbody .dtbl td{text-align:left;padding:8px 4px;border-top:1px solid var(--line)}
+.docbody .dtbl th{font-size:12.5px;color:var(--sub);font-weight:600;border-top:none}
+.docbody .dtbl td:last-child{text-align:right;white-space:nowrap}
+.docbody .dot{display:inline-block;width:10px;height:10px;border-radius:3px}
+.docbody .dot.amber{background:var(--amber)} .docbody .dot.blue{background:var(--blue)}
+.devshare .r{align-items:end}
+.devshare .r .p{line-height:1}
+.sl b{min-width:118px}
+.quote .qm{color:var(--blue-t);opacity:.35}
+.docbody .dtbl th:last-child{text-align:right}

@@ -10,6 +10,7 @@ function subscribe<T>(channel: string, cb: (v: T) => void): () => void {
 }
 
 const api: SafeEarApi & { setPaused(p: boolean): Promise<void> } = {
+  env: 'electron',
   getState: () => invoke('api:getState'),
   onState: (cb) => subscribe('state', cb),
   onWave: (cb) => subscribe('wave', cb),

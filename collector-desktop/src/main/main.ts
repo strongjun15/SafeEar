@@ -206,7 +206,16 @@ app.whenReady().then(async () => {
         contextIsolation: true,
         sandbox: true,
         nodeIntegration: false,
+        webviewTag: true, // 리포트의 네이버 지도 상자
       },
+    });
+    // 지도 상자(<webview>)는 네이버 지도 주소만, 권한 없이 붙인다
+    ui.webContents.on('will-attach-webview', (ev, prefs, params) => {
+      delete prefs.preload;
+      prefs.nodeIntegration = false;
+      prefs.contextIsolation = true;
+      prefs.sandbox = true;
+      if (!isNaverMap(params.src)) ev.preventDefault();
     });
     ui.webContents.setWindowOpenHandler(({ url }) => {
       if (/^https:\/\//.test(url)) void shell.openExternal(url);
@@ -441,6 +450,30 @@ app.whenReady().then(async () => {
     sync.stop();
     void sync.upload();
   });
+});
+
+const isNaverMap = (url: string) => /^https:\/\/(m\.)?map\.naver\.com\//.test(url);
+const NAVER_HOSTS = /^https:\/\/([a-z0-9-]+\.)*(naver\.com|naver\.net|pstatic\.net|navercorp\.com)(\/|$)/;
+
+/** 지도 상자 안에서 새 창·바깥 주소로 가려 하면 기본 브라우저로 연다 */
+app.on('web-contents-created', (_e, contents) => {
+  if (contents.getType() !== 'webview') return;
+  contents.setWindowOpenHandler(({ url }) => {
+    if (/^https:\/\//.test(url)) void shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  contents.on('will-navigate', (ev, url) => {
+    if (!NAVER_HOSTS.test(url)) {
+      ev.preventDefault();
+      if (/^https:\/\//.test(url)) void shell.openExternal(url);
+    }
+  });
+});
+
+app.whenReady().then(() => {
+  // 지도 상자에서 '내 위치'를 쓸 수 있게 위치 권한만 허용
+  const mapSession = session.fromPartition('persist:naver-map');
+  mapSession.setPermissionRequestHandler((_wc, perm, cb) => cb(perm === 'geolocation'));
 });
 
 app.on('window-all-closed', () => {

@@ -93,8 +93,15 @@ export interface GaugeView {
   bands: number[];
   bandCoverage: number;
   devices: DeviceShare[];
+  /** 7일 × 24시간 첨도 보정 선량 (현지 시각, 마지막 줄이 오늘) */
   heat: number[][];
   heatDays: string[];
+  /** 7일 각각의 날짜 · 들은 시간 · 선량 (heat와 같은 순서) */
+  days: { date: string; dow: string; listenSec: number; kurt: number }[];
+  /** 최근 7일 이어폰으로 들은 소리의 평균 크기 [dBA] */
+  recentLaeq: number | null;
+  /** 최근 7일 평균 첨도 보정 배율 */
+  kurtWeightAvg: number;
   apps: { label: string; pct: number }[];
   volumeTrend: { day: string; avg: number }[];
   iso: { lex8h: number | null; scenarios: Scenario[] };
@@ -170,6 +177,8 @@ export interface RemoteDevice {
 export type Result<T = void> = { ok: true; data: T } | { ok: false; error: string };
 
 export interface SafeEarApi {
+  /** 'electron' = 윈도우 앱, 'preview' = 브라우저 미리보기 */
+  env: 'electron' | 'preview';
   getState(): Promise<AppState>;
   onState(cb: (s: AppState) => void): () => void;
   onWave(cb: (w: WaveChunk) => void): () => void;

@@ -149,15 +149,21 @@ function gauge(): AppState['gauge'] {
     const d = DEVICES.find((x) => x.id === id)!;
     return { id, name: id === THIS ? `이 PC (${d.name})` : d.name, isThis: id === THIS, pct: (v / devTotal) * 100, platform: d.platform };
   }).sort((a, b) => b.pct - a.pct);
-  const heat = Array.from({ length: 7 }, () => new Array(12).fill(0));
+  const heat = Array.from({ length: 7 }, () => new Array(24).fill(0));
   const start = new Date(day0); start.setDate(start.getDate() - 6);
   const DOW = ['일', '월', '화', '수', '목', '금', '토'];
-  const heatDays = Array.from({ length: 7 }, (_, i) => DOW[new Date(start.getTime() + i * 86400000).getDay()]);
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start.getTime() + i * 86400000);
+    return { date: `${d.getMonth() + 1}/${d.getDate()}`, dow: DOW[d.getDay()], listenSec: 0, kurt: 0 };
+  });
+  let sumEeh = 0, sumSec = 0, sumKurt = 0;
   for (const m of merged.values()) {
+    sumEeh += m.eeh; sumKurt += m.kurt; sumSec += m.listenSeconds;
     const dt = new Date(m.minute * 60000);
     const di = Math.round((new Date(dt).setHours(0, 0, 0, 0) - start.getTime()) / 86400000);
-    if (di >= 0 && di < 7) heat[di][Math.floor(dt.getHours() / 2)] += m.kurt;
+    if (di >= 0 && di < 7) { heat[di][dt.getHours()] += m.kurt; days[di].listenSec += m.listenSeconds; days[di].kurt += m.kurt; }
   }
+  const heatDays = days.map((d) => d.dow);
   const byLabel = new Map<string, number>();
   for (const r of all) {
     const k = r.device_id === THIS ? r.app_name ?? '기타' : `다른 기기 · ${LABEL[r.content_label ?? 'other']}`;
@@ -195,6 +201,9 @@ function gauge(): AppState['gauge'] {
     devices,
     heat,
     heatDays,
+    days,
+    recentLaeq: sumSec > 0 ? 10 * Math.log10((sumEeh * 3600) / sumSec / 4e-10) : null,
+    kurtWeightAvg: sumEeh > 0 ? sumKurt / sumEeh : 1,
     apps,
     volumeTrend: [...vt.entries()].map(([day, x]) => ({ day, avg: x.s / x.n })),
     iso: lex8h == null ? { lex8h: null, scenarios: [] } : {
@@ -285,6 +294,7 @@ function signIn(name: string, email: string, provider: string) {
 }
 
 const api: SafeEarApi & { setPaused(p: boolean): Promise<void> } = {
+  env: 'preview',
   getState: async () => state(),
   onState: (cb) => { stateCbs.push(cb); return () => stateCbs.splice(stateCbs.indexOf(cb), 1); },
   onWave: (cb) => { waveCbs.push(cb); return () => waveCbs.splice(waveCbs.indexOf(cb), 1); },
