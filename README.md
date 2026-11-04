@@ -6,7 +6,7 @@
 **최근 7일 귀 피로도**를 계산한다. 계정으로 로그인하면 휴대폰 · 태블릿 · 다른 PC에서 들은 소리와 합쳐
 **한 사람의 귀 기준**으로 계산한다.
 
-설계 근거: [`docs/SafeEar_개발계획_v3.md`](docs/SafeEar_개발계획_v3.md) · 구현 결정: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · 로그인 설정: [`docs/AUTH_SETUP.md`](docs/AUTH_SETUP.md)
+설계 근거: [`docs/SafeEar_개발계획_v3.md`](docs/SafeEar_개발계획_v3.md) · 구현 결정: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · 로그인 설정: [`docs/AUTH_SETUP.md`](docs/AUTH_SETUP.md) · 화면 디자인: [`DESIGN.md`](DESIGN.md)
 
 ## 저장소 구조 (계획서 16.3절)
 

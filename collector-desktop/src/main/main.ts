@@ -199,7 +199,7 @@ app.whenReady().then(async () => {
       minHeight: 640,
       title: 'SafeEar',
       icon: asset('icon.png'),
-      backgroundColor: '#EDF1F8',
+      backgroundColor: '#000000',
       show: false,
       webPreferences: {
         preload: join(__dirname, 'preload-ui.cjs'),

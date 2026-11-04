@@ -8,7 +8,7 @@
 <title>SafeEar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Gowun+Batang:wght@400;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -18,7 +18,7 @@
   <!-- ① 오늘 -->
   <section id="home">
     <div class="hero pad">
-      <div class="top"><h1>최근 7일 귀 피로도</h1><button class="badge" id="badge"><i></i><span id="badgeTx">측정 준비 중</span></button>
+      <div class="top"><h1 id="homeTitle">이번 주 귀는<br><em>여유로워요</em></h1><button class="badge" id="badge"><i></i><span id="badgeTx">측정 준비 중</span></button>
       </div>
       <div class="herocard">
         <button class="qbtn on-accent" data-doc="ring" aria-label="이 숫자는 뭔가요?">?</button>
@@ -76,7 +76,7 @@
 
   <!-- ② 음역별 부담 -->
   <section id="map" hidden>
-    <div class="hero pad"><div class="top"><h1>음역별 부담</h1></div></div>
+    <div class="hero pad"><div class="top"><h1>어느 높이를<br><em>많이 들었을까요</em></h1></div></div>
     <main class="pad">
       <div class="card">
         <div class="rowh"><h3>최근 7일 동안 쌓인 부담</h3><button class="qbtn" data-doc="bands" aria-label="그래프 보는 법">?</button></div>
@@ -90,7 +90,7 @@
   <!-- ③ 회복 -->
   <section id="recover" hidden>
     <div class="hero pad">
-      <div class="top"><h1>회복</h1></div>
+      <div class="top"><h1>잠깐<br><em>쉬어 갈까요</em></h1></div>
       <div class="herocard">
         <button class="qbtn on-accent" data-doc="recovery" aria-label="쉬어도 0%가 되지 않는 이유">?</button>
         <div class="ringbox" id="timerRing"></div>
@@ -107,7 +107,7 @@
 
   <!-- ④ 10년 뒤 -->
   <section id="future" hidden>
-    <div class="hero pad"><div class="top"><h1>10년 뒤 이 노래</h1></div></div>
+    <div class="hero pad"><div class="top"><h1>10년 뒤에도<br><em>이 노래가 들릴까요</em></h1></div></div>
     <main class="pad">
       <div class="card">
         <div class="rowh"><h3>미래의 내 귀로 들어 보기</h3><button class="qbtn" data-doc="future" aria-label="어떻게 만들었나요?">?</button></div>
@@ -127,7 +127,7 @@
 
   <!-- ⑤ 리포트 -->
   <section id="report" hidden>
-    <div class="hero pad"><div class="top"><h1>주간 리포트</h1></div></div>
+    <div class="hero pad"><div class="top"><h1>이번 주<br><em>귀 이야기</em></h1></div></div>
     <main class="pad">
       <figure class="quote" id="quote">
         <span class="qm open" aria-hidden="true">“</span>
@@ -164,8 +164,8 @@
   </div>
 
   <div class="topbtns">
-    <button class="iconbtn" id="pauseBtn" aria-label="측정 일시정지" title="측정 일시정지/다시 시작"></button>
     <button class="iconbtn avatar" id="avBtn" aria-label="프로필">?</button>
+    <button class="iconbtn" id="pauseBtn" aria-label="측정 일시정지" title="측정 일시정지/다시 시작"></button>
   </div>
 
   <nav class="tabbar"><div class="dock" id="track"><div class="lens" id="lens"></div></div></nav>
@@ -226,13 +226,7 @@
         <div class="sec">화면</div>
         <div class="card"><div style="font-size:14px;font-weight:700">화면 모드</div>
           <div class="seg2" id="themeSeg"><button data-theme-set="auto">자동</button><button data-theme-set="light">라이트</button><button data-theme-set="dark">다크</button></div>
-          <div style="font-size:14px;font-weight:700;margin-top:18px">테마 색</div>
-          <div class="swatches" id="accents">
-            <button data-accent="ocean" style="--c:#0071e3"><i style="background:#0071e3"></i>바다</button>
-            <button data-accent="forest" style="--c:#1a7f45"><i style="background:#1a7f45"></i>숲</button>
-            <button data-accent="sunset" style="--c:#c2410c"><i style="background:#c2410c"></i>노을</button>
-            <button data-accent="violet" style="--c:#7048e8"><i style="background:#7048e8"></i>보라</button>
-          </div></div>
+        </div>
 
         <div class="sec">내 데이터</div>
         <div class="card" style="padding-top:4px;padding-bottom:4px">

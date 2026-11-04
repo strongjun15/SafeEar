@@ -4,7 +4,7 @@ import type { CurvePoint } from '@safeear/core';
 import type { Scenario } from '../shared/types';
 import { lerp } from './dom';
 
-const RAMP = ['#4B6FD0', '#17A398', '#8CC24E', '#F0A13C', '#E2542E'];
+const RAMP = ['#3DDC97', '#9BE36A', '#FFC94A', '#FF9442', '#FF5E57'];
 function mix(h1: string, h2: string, t: number): string {
   const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const a = p(h1), b = p(h2);
@@ -17,18 +17,31 @@ export function bandColor(v: number): string {
   return mix(RAMP[i], RAMP[i + 1], v * s - i);
 }
 
-const RC = 2 * Math.PI * 88;
-export function ring(el: HTMLElement, center: string, label: string): void {
-  el.innerHTML = `<svg viewBox="0 0 216 216" width="216" height="216">
-    <defs><linearGradient id="rg${el.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".78"/></linearGradient></defs>
-    <circle cx="108" cy="108" r="88" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="16"/>
-    <circle class="arc" cx="108" cy="108" r="88" fill="none" stroke="url(#rg${el.id})" stroke-width="16" stroke-linecap="round"
-      stroke-dasharray="${RC}" stroke-dashoffset="${RC}" transform="rotate(-90 108 108)" style="transition:stroke-dashoffset .9s ease"/>
-  </svg><div class="mid">${center}<div class="lbl">${label}</div></div>`;
+/** 링 둘레의 자리마다 정해진 색 (DESIGN.md 2-5) — 끝 캡 색을 맞추는 데 쓴다 */
+const LOAD_STOPS: [number, string][] = [[0, '#3DDC97'], [110 / 360, '#9BE36A'], [0.5, '#FFC94A'], [0.75, '#FF9442'], [0.9, '#FF5E57'], [1, '#FF5E57']];
+const REST_STOPS: [number, string][] = [[0, '#7B8CFF'], [0.5, '#62B8FF'], [290 / 360, '#4FD6C8'], [1, '#3DDC97']];
+function colorAt(stops: [number, string][], p: number): string {
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [a, ca] = stops[i], [b, cb] = stops[i + 1];
+    if (p <= b) return mix(ca, cb, b > a ? (p - a) / (b - a) : 0);
+  }
+  return stops[stops.length - 1][1];
+}
+
+/** 링: 원뿔 그라데이션 + 번지는 빛 + 둥근 캡. 값은 setArc로 */
+export function ring(el: HTMLElement, center: string, label: string, variant: 'load' | 'rest' = 'load'): void {
+  el.innerHTML = `<div class="ring${variant === 'rest' ? ' rest' : ''}" data-empty style="--p:0">
+    <div class="ring-glow"><div class="ring-arc"></div></div><div class="ring-arc"></div>
+    <div class="ring-cap start"></div><div class="ring-capw"><div class="ring-cap"></div></div>
+  </div><div class="mid">${center}<div class="lbl">${label}</div></div>`;
 }
 export function setArc(el: HTMLElement, frac: number): void {
-  const a = el.querySelector('.arc');
-  if (a) a.setAttribute('stroke-dashoffset', String(RC * (1 - Math.max(0, Math.min(1, frac)))));
+  const r = el.querySelector<HTMLElement>('.ring');
+  if (!r) return;
+  const p = Math.max(0, Math.min(1, frac));
+  r.style.setProperty('--p', p.toFixed(4));
+  r.style.setProperty('--capc', colorAt(r.classList.contains('rest') ? REST_STOPS : LOAD_STOPS, p));
+  r.toggleAttribute('data-empty', p < 0.005);
 }
 
 /** 19밴드 막대 — 값은 최댓값으로 정규화 */

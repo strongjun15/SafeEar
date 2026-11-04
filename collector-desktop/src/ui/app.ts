@@ -178,7 +178,7 @@ $('#docBack').onclick = () => ($('#doc').hidden = true);
 
 /* ---------------- 오늘 ---------------- */
 ring($('#homeRing'), `<div class="big"><span id="homePct">0</span><small>%</small></div>`, '일주일 권장량 중');
-ring($('#timerRing'), `<div class="big" id="clock" style="font-size:50px">30:00</div>`, `<span id="timerLbl"></span>`);
+ring($('#timerRing'), `<div class="big" id="clock" style="font-size:clamp(44px,13vw,54px)">30:00</div>`, `<span id="timerLbl"></span>`, 'rest');
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 /** 이 속도로 들으면 언제 100%가 되는지 — 친근한 말로 */
@@ -213,6 +213,21 @@ function remainingText(s: AppState): [string, string] {
 const betaWord = (b: number) => (b < 4 ? '부드러움' : b < 8 ? '보통' : '뾰족함');
 
 const OUT_LABEL: Record<OutputType, string> = { headphones: '이어폰', speaker: '스피커 · 제외', unknown: '미확인' };
+
+/** 귀 상태 4단계 — 포인트 색과 헤드라인 낱말 (DESIGN.md 2-4) */
+const STATES: { max: number; key: string; word: string }[] = [
+  { max: 50, key: 'calm', word: '여유로워요' },
+  { max: 80, key: 'tired', word: '조금 지쳤어요' },
+  { max: 100, key: 'warn', word: '많이 지쳤어요' },
+  { max: Infinity, key: 'over', word: '쉬어야 해요' },
+];
+function applyState(pct: number) {
+  const st = STATES.find((x) => pct < x.max)!;
+  if (document.documentElement.dataset.state !== st.key) document.documentElement.dataset.state = st.key;
+  const t = $('#homeTitle');
+  const html = `이번 주 귀는<br><em>${st.word}</em>`;
+  if (t.innerHTML !== html) t.innerHTML = html;
+}
 
 function renderHome(s: AppState) {
   const g = s.gauge, L = s.live;
@@ -275,7 +290,7 @@ function renderHome(s: AppState) {
   // 경고까지 남은 거리 (0~120% 축, 80% 주의 · 100% 한도)
   const ax = (p: number) => `${(Math.min(120, Math.max(0, p)) / 120) * 100}%`;
   const pct = g.safeEarPct;
-  $('#dualBar').style.width = ax(pct);
+  $('#dualBar').style.setProperty('--fw', ax(pct));
   $('#dualMk').style.left = ax(pct);
   const ticks = $$('#dual .tick');
   ticks[0].style.left = ax(80);
@@ -356,7 +371,7 @@ function renderMins() {
     b.disabled = T.run;
     b.className = r.min === T.minutes ? 'on' : '';
     const label = r.min >= 60 ? `${r.min / 60}시간` : `${r.min}분`;
-    b.innerHTML = `<span class="m">${label}</span><span class="d">−${Math.max(0, now - r.pct).toFixed(1)}%p</span><span class="t">${Math.round(r.pct)}%</span>`;
+    b.innerHTML = `<span class="m">${label}</span><span class="d">−${Math.max(0, now - r.pct).toFixed(1)}%p</span><span class="t">${r.pct.toFixed(now - r.pct < 2 ? 1 : 0)}%로</span>`;
     b.onclick = () => {
       if (T.run) return;
       T.minutes = r.min;
@@ -625,15 +640,21 @@ regionIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadMap(); 
 $('#mapOpen').onclick = () => void api.openExternal(`https://map.naver.com/p/search/${encodeURIComponent(mapQuery())}`);
 
 /* ---------------- 프로필 ---------------- */
+function renderAvatar(s: AppState) {
+  const u = s.session.user;
+  const PERSON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+  if (u) $('#avBtn').textContent = initial(u.name); else $('#avBtn').innerHTML = PERSON;
+}
 const initial = (n: string) => (n || '?').trim().charAt(0) || '?';
 function paintTheme(st: Settings) {
   const r = document.documentElement;
   if (st.theme === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', st.theme);
-  if (st.accent === 'ocean') r.removeAttribute('data-accent'); else r.setAttribute('data-accent', st.accent);
+  r.removeAttribute('data-accent');
 }
 function renderProfile(s: AppState, force = false) {
   const st = s.settings, u = s.session.user;
-  $('#avBtn').textContent = u ? initial(u.name) : '?';
+  const PERSON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+  if (u) $('#avBtn').textContent = initial(u.name); else $('#avBtn').innerHTML = PERSON;
   $('#pAv').textContent = u ? initial(u.name) : '?';
   $('#pHead').textContent = u ? u.name : '로그인하지 않음';
   $('#pMail').textContent = u ? `${u.email ?? ''}${u.provider === 'google' ? ' · Google' : ''}` : '';
@@ -902,6 +923,8 @@ const PAUSE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="curren
 const PLAY_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z"/></svg>';
 function render(s: AppState) {
   S = s;
+  applyState(s.gauge.safeEarPct);
+  if (changed('avatar', s.session.user?.name ?? '')) renderAvatar(s);
   paintTheme(s.settings);
   renderAuth(s);
   if (changed('pause', s.settings.paused)) {

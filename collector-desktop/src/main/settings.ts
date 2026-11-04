@@ -16,7 +16,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notify: { warn: true, rest: true, weekly: true },
   autoReduceVolume: false,
   launchAtLogin: true,
-  theme: 'auto',
+  theme: 'dark',
   accent: 'ocean',
   localOnlyChosen: false,
 };
