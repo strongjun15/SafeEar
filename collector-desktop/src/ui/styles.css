@@ -606,3 +606,31 @@ button.more{font:inherit;font-size:13px;font-weight:600;color:var(--blue-t)}
 .sl b{min-width:118px}
 .quote .qm{color:var(--blue-t);opacity:.35}
 .docbody .dtbl th:last-child{text-align:right}
+
+/* 10년 뒤: 숫자를 눌러 고르는 문장 */
+.sentence{margin-top:14px;font-size:clamp(17px,4.8vw,19px);font-weight:600;line-height:2.1;letter-spacing:-.02em;word-break:keep-all}
+.numpill{position:relative;isolation:isolate;display:inline-flex;align-items:center;gap:4px;margin:0 2px;padding:1px 10px 1px 12px;border-radius:12px;
+  font:inherit;font-family:var(--f-num),var(--f-ui);font-weight:700;color:var(--blue-t);background:var(--blue-2);
+  border:1.5px solid color-mix(in srgb,var(--blue) 35%,transparent);line-height:1.6;vertical-align:baseline;
+  transition:background-color var(--hv-t) ease-out,color var(--hv-t) ease-out,transform var(--sp-t) var(--sp-ease)}
+.numpill::after{content:"";width:7px;height:7px;margin-left:2px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.7;
+  transition:transform var(--sp-t) var(--sp-ease)}
+.numpill.on{color:#fff;background:var(--blue);border-color:transparent;box-shadow:0 6px 16px color-mix(in srgb,var(--blue) 30%,transparent)}
+.numpill.on::after{transform:translateY(2px) rotate(-135deg)}
+.numpill:active{transform:scale(1.04)}
+@media (hover:hover){.numpill:not(.on):hover{background:color-mix(in srgb,var(--blue) 18%,var(--blue-2))}}
+.picker{margin-top:10px;padding:14px;border-radius:20px;background:var(--glass-2);border:1px solid var(--glass-bd);box-shadow:var(--glass-sh2),inset 0 1px 0 var(--glass-hi);
+  animation:pkIn .32s var(--spring)}
+@keyframes pkIn{from{opacity:0;transform:translateY(-8px) scale(.98)}}
+.pk-step{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pk-step b{flex:1;text-align:center;font-family:var(--f-num),var(--f-ui);font-size:22px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.pk-btn{width:44px;height:44px;border-radius:50%;font-size:24px;font-weight:500;line-height:1;color:var(--blue-t);background:var(--glass);border:1px solid var(--glass-bd);
+  box-shadow:var(--glass-sh2),inset 0 1px 0 var(--glass-hi);transition:transform var(--sp-t) var(--sp-ease),background-color var(--hv-t) ease-out}
+.pk-btn:active:not(:disabled){transform:scale(1.08);background:var(--hv-press)}
+.pk-btn:disabled{opacity:.35;cursor:default}
+.pk-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center}
+.pk-chip{min-height:36px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:600;white-space:nowrap;background:var(--glass);border:1px solid var(--glass-bd);
+  transition:background-color var(--hv-t) ease-out,color var(--hv-t) ease-out}
+.pk-chip.on{background:var(--blue);color:#fff;border-color:transparent}
+@media (hover:hover){.pk-chip:not(.on):hover{background:var(--hv-bg)}}
+.pk-tx{margin-top:10px;text-align:center;font-size:13.5px}

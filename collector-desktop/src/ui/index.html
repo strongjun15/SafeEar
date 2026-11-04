@@ -111,11 +111,8 @@
     <main class="pad">
       <div class="card">
         <div class="rowh"><h3>미래의 내 귀로 들어 보기</h3><button class="qbtn" data-doc="future" aria-label="어떻게 만들었나요?">?</button></div>
-        <div class="seg2 two" id="earSeg"><button data-ear="now">지금 내 귀</button><button data-ear="future" class="on">미래의 내 귀</button></div>
-        <div class="sliders" id="sliders">
-          <label class="sl"><span class="slk">언제</span><input type="range" id="slYears" min="1" max="30" step="1" value="10"><b id="slYearsTx">10년 뒤</b></label>
-          <label class="sl"><span class="slk">볼륨</span><input type="range" id="slVol" min="-10" max="10" step="1" value="0"><b id="slVolTx">지금 그대로</b></label>
-        </div>
+        <p class="sentence" id="futSentence"></p>
+        <div class="picker" id="picker" hidden></div>
         <div id="eq" style="margin-top:8px"></div>
         <div class="note" id="eqnote"></div>
         <button class="btn wide" id="play" style="margin-top:12px">▶  재생</button>
@@ -140,9 +137,9 @@
       </figure>
       <div class="card">
         <div class="rowh"><h3>언제 많이 들었나</h3></div>
-        <div class="seg2 two" id="heatSeg"><button data-hv="week" class="on">한 주 전체</button><button data-hv="day">요일별로</button></div>
-        <div id="heatWeek"><div class="heat" id="heat"></div><div class="heatlg"><span>적게</span><i></i><span>많이</span></div></div>
-        <div id="heatDay" hidden>
+        <div class="seg2 two" id="heatSeg"><button data-hv="day" class="on">요일별로</button><button data-hv="week">한 주 전체</button></div>
+        <div id="heatWeek" hidden><div class="heat" id="heat"></div><div class="heatlg"><span>적게</span><i></i><span>많이</span></div></div>
+        <div id="heatDay">
           <div class="daynav"><button class="iconbtn" id="dayPrev" aria-label="이전 날">‹</button><div class="dayttl"><b id="dayTitle">–</b><span id="daySub"></span></div><button class="iconbtn" id="dayNext" aria-label="다음 날">›</button></div>
           <div id="dayBars"></div>
         </div>

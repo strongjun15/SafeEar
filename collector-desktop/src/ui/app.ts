@@ -408,21 +408,72 @@ lab.onChange = (playing) => {
   p.textContent = playing ? '■  정지' : '▶  재생';
   p.classList.toggle('ghost', playing);
 };
-let earMode: 'now' | 'future' = 'future';
-const slYears = $('#slYears') as HTMLInputElement;
-const slVol = $('#slVol') as HTMLInputElement;
-const volWord = (d: number) =>
-  d === 0 ? '지금 그대로' : d <= -6 ? `많이 작게 (${d} dB)` : d < 0 ? `조금 작게 (${d} dB)` : d >= 6 ? `많이 크게 (+${d} dB)` : `조금 크게 (+${d} dB)`;
+/** 문장 속 숫자: "[10년] 뒤, 평소보다 [3 dB] 크게 들었을 때" — 숫자를 누르면 바로 아래에서 고른다 */
+let futYears = 10;
+let futVol = 0;
+let picking: 'years' | 'vol' | null = null;
+const YEAR_PRESETS = [1, 5, 10, 20, 30];
+const VOL_PRESETS = [-6, -3, 0, 3, 6, 10];
 const rerenderFuture = () => {
   lastSig.future = '';
   if (S) renderFuture(S);
 };
-$$<HTMLElement>('#earSeg button').forEach((b) => (b.onclick = () => {
-  earMode = b.dataset.ear as 'now' | 'future';
+const volChip = (d: number) => (d === 0 ? '평소 크기' : `${Math.abs(d)} dB ${d > 0 ? '크게' : '작게'}`);
+const energyTx = (d: number) => {
+  if (d === 0) return '평소 듣던 크기 그대로예요';
+  const k = Math.pow(10, d / 10);
+  return d > 0 ? `귀가 받는 소리 에너지가 ${k >= 10 ? Math.round(k) : k.toFixed(1)}배예요` : `귀가 받는 소리 에너지가 ${Math.round(k * 100)}%로 줄어요`;
+};
+function sentenceHtml(): string {
+  const y = `<button class="numpill${picking === 'years' ? ' on' : ''}" data-pick="years" aria-expanded="${picking === 'years'}">${futYears}년</button>`;
+  const v = `<button class="numpill${picking === 'vol' ? ' on' : ''}" data-pick="vol" aria-expanded="${picking === 'vol'}">${futVol === 0 ? '평소 크기' : `${Math.abs(futVol)} dB`}</button>`;
+  return futVol === 0 ? `${y} 뒤,<br>${v}로 들었을 때` : `${y} 뒤,<br>평소보다 ${v} ${futVol > 0 ? '크게' : '작게'} 들었을 때`;
+}
+function pickerHtml(): string {
+  if (picking === 'years') {
+    return `<div class="pk-step"><button class="pk-btn" data-step="-1" aria-label="1년 줄이기"${futYears <= 1 ? ' disabled' : ''}>−</button>
+      <b>${futYears}년 뒤</b><button class="pk-btn" data-step="1" aria-label="1년 늘리기"${futYears >= 30 ? ' disabled' : ''}>+</button></div>
+      <div class="pk-chips">${YEAR_PRESETS.map((y) => `<button class="pk-chip${y === futYears ? ' on' : ''}" data-val="${y}">${y}년</button>`).join('')}</div>`;
+  }
+  if (picking === 'vol') {
+    return `<div class="pk-step"><button class="pk-btn" data-step="-1" aria-label="1 dB 작게"${futVol <= -10 ? ' disabled' : ''}>−</button>
+      <b>${volChip(futVol)}</b><button class="pk-btn" data-step="1" aria-label="1 dB 크게"${futVol >= 10 ? ' disabled' : ''}>+</button></div>
+      <div class="pk-chips">${VOL_PRESETS.map((d) => `<button class="pk-chip${d === futVol ? ' on' : ''}" data-val="${d}">${d === 0 ? '평소' : `${d > 0 ? '+' : '−'}${Math.abs(d)} dB`}</button>`).join('')}</div>
+      <p class="pk-tx">${energyTx(futVol)}</p>`;
+  }
+  return '';
+}
+$('#futSentence').addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-pick]');
+  if (!b) return;
+  const k = b.dataset.pick as 'years' | 'vol';
+  picking = picking === k ? null : k;
   rerenderFuture();
-}));
-slYears.oninput = rerenderFuture;
-slVol.oninput = rerenderFuture;
+});
+$('#picker').addEventListener('click', (e) => {
+  const t = e.target as HTMLElement;
+  const step = t.closest<HTMLElement>('[data-step]');
+  const val = t.closest<HTMLElement>('[data-val]');
+  if (picking === 'years') {
+    if (step) futYears = Math.min(30, Math.max(1, futYears + Number(step.dataset.step)));
+    if (val) { futYears = Number(val.dataset.val); picking = null; }
+  } else if (picking === 'vol') {
+    if (step) futVol = Math.min(10, Math.max(-10, futVol + Number(step.dataset.step)));
+    if (val) { futVol = Number(val.dataset.val); picking = null; }
+  }
+  if (step || val) rerenderFuture();
+});
+// 바깥을 누르거나 Esc를 누르면 닫는다
+document.addEventListener('pointerdown', (e) => {
+  if (!picking) return;
+  const t = e.target as HTMLElement;
+  if (t.closest('#picker') || t.closest('#futSentence')) return;
+  picking = null;
+  rerenderFuture();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && picking) { picking = null; rerenderFuture(); }
+});
 $('#play').onclick = () => lab.toggle();
 ($('#fileIn') as HTMLInputElement).onchange = async (e) => {
   const f = (e.target as HTMLInputElement).files?.[0];
@@ -437,13 +488,11 @@ $('#play').onclick = () => lab.toggle();
 const freqLabel = (f: number) => (f >= 1000 ? `${f / 1000}k` : String(f));
 function renderFuture(s: AppState) {
   const lex = s.gauge.iso.lex8h;
-  const years = Number(slYears.value), d = Number(slVol.value);
-  if (!changed('future', [lex == null ? null : Math.round(lex * 10), years, d, earMode])) return;
-  $('#slYearsTx').textContent = `${years}년 뒤`;
-  $('#slVolTx').textContent = volWord(d);
-  $$<HTMLElement>('#earSeg button').forEach((b) => b.classList.toggle('on', b.dataset.ear === earMode));
-  $('#sliders').classList.toggle('off', earMode === 'now' || lex == null);
-  slYears.disabled = slVol.disabled = earMode === 'now' || lex == null;
+  if (!changed('future', [lex == null ? null : Math.round(lex * 10), futYears, futVol, picking])) return;
+  $('#futSentence').innerHTML = sentenceHtml();
+  const pk = $('#picker');
+  pk.innerHTML = pickerHtml();
+  pk.hidden = !picking;
   if (lex == null) {
     lab.setScenario(null);
     $('#eq').innerHTML = `<div class="empty">이어폰으로 들은 기록이 생기면 계산해요</div>`;
@@ -452,19 +501,20 @@ function renderFuture(s: AppState) {
     $('#isoTbl').innerHTML = '';
     return;
   }
-  const ref = niptsCurve(lex, 10);
-  const cur = earMode === 'now' ? ref.map((p) => ({ ...p, db: 0 })) : niptsCurve(lex + d, years);
-  lab.setScenario({ id: 'keep', deltaDb: d, points: cur });
+  // 점선 = 같은 기간을 평소 크기로 들었을 때, 실선 = 고른 조건
+  const ref = niptsCurve(lex, futYears);
+  const cur = niptsCurve(lex + futVol, futYears);
+  lab.setScenario({ id: 'keep', deltaDb: futVol, points: cur });
   $('#eq').innerHTML = eqCurvesSvg([
     { points: ref, color: 'var(--faint)', width: 1.4, dash: true },
-    { points: cur, color: earMode === 'now' ? 'var(--faint)' : d < 0 ? 'var(--teal)' : 'var(--hot)', width: 3 },
+    { points: cur, color: futVol < 0 ? 'var(--teal)' : 'var(--hot)', width: 3 },
   ]);
   const k4 = cur.find((p) => p.freq === 4000)?.db ?? 0;
-  $('#eqnote').textContent = earMode === 'now' ? '지금 내 귀로 듣는 소리예요' : k4 < 0.5 ? '4 kHz 쪽은 거의 그대로예요' : `4 kHz 소리가 ${k4.toFixed(1)} dB 작게 들려요`;
+  $('#eqnote').textContent = k4 < 0.5 ? '4 kHz 쪽은 거의 그대로예요' : `4 kHz 소리가 ${k4.toFixed(1)} dB 작게 들려요`;
   $('#isoHint').textContent = `평소 크기 ${Math.round(lex)} dB 기준`;
   $('#isoTbl').innerHTML = `<tr><th>높이</th>${ref.map((p) => `<th>${freqLabel(p.freq)}</th>`).join('')}</tr>
-    <tr><td>지금처럼 10년</td>${ref.map((p) => `<td>${p.db.toFixed(1)}</td>`).join('')}</tr>
-    <tr class="mine"><td>고른 조건</td>${cur.map((p) => `<td>${p.db.toFixed(1)}</td>`).join('')}</tr>`;
+    <tr><td>평소 크기로</td>${ref.map((p) => `<td>${p.db.toFixed(1)}</td>`).join('')}</tr>
+    <tr class="mine"><td>${futVol === 0 ? '고른 조건' : volChip(futVol)}</td>${cur.map((p) => `<td>${p.db.toFixed(1)}</td>`).join('')}</tr>`;
 }
 
 /* ---------------- 리포트 ---------------- */
@@ -488,7 +538,7 @@ function quoteSentence(g: AppState['gauge']): string {
   return app ? `이번 주 귀가 가장 바빴던 때는 ${busy}, 주인공은 ${app}.` : `이번 주 귀가 가장 바빴던 때는 ${busy}.`;
 }
 
-let heatView: 'week' | 'day' = 'week';
+let heatView: 'week' | 'day' = 'day';
 let dayIdx = 6;
 const rerenderReport = () => {
   lastSig.heat = '';
