@@ -1,0 +1,193 @@
+/* Token scaffold — roles, not a palette.
+ *
+ * Copy, then replace every value using the direction from
+ * templates/design-direction.md. The values here are placeholders chosen to be
+ * obviously unfinished: neutral grays, a single unremarkable accent. Shipping
+ * them unchanged is the failure this file exists to prevent.
+ *
+ * Rules this scaffold encodes:
+ *   - roles are named by job, never by hue ("--accent", not "--blue")
+ *   - one scale per dimension; components never invent values
+ *   - dark theme is a second set of values, not an inversion
+ *   - motion durations live here so every component shares them
+ *
+ * Delete every step you do not use. An unused token is a decision you have not
+ * made yet.
+ *
+ * Every text/background pair below was measured and clears 4.5:1 in both
+ * themes, so the scaffold is usable as-is while you work. Those numbers belong
+ * to these placeholder values only - remeasure the moment you change one.
+ */
+
+:root {
+  /* ---- Neutrals -----------------------------------------------------
+   * Build in a perceptual space (OKLCH/LCH) so steps look even. Give them a
+   * temperature; fully desaturated gray reads as an unset default.
+   */
+  --n-0:  #ffffff;
+  --n-50: #f7f7f8;
+  --n-100:#eeeef0;
+  --n-200:#e0e0e3;
+  --n-300:#c6c6cb;
+  --n-400:#9a9aa1;
+  --n-500:#71717a;
+  --n-600:#52525b;
+  --n-700:#3f3f46;
+  --n-800:#27272a;
+  --n-900:#18181b;
+  --n-950:#0d0d0f;
+
+  /* ---- Accent -------------------------------------------------------
+   * One accent. It belongs to the primary action. If it also marks links,
+   * active nav, chart series and headings, it has stopped meaning anything.
+   */
+  --a-tint:  #eef2f6;
+  --a-border:#c3d0dd;
+  --a-base:  #37506b;
+  --a-hover: #2c4058;
+  --a-active:#233346;
+  --a-text:  #ffffff;   /* on --a-base: 8.33:1 as shipped. Recheck after you replace it. */
+
+  /* ---- Semantic -----------------------------------------------------
+   * Each needs a tint, a border and a text-safe step. Never reuse the accent
+   * for one of these while the accent also means "clickable".
+   */
+  --ok-tint:#eef6ef;   --ok-border:#bcdac0;   --ok-text:#2b6b34;
+  --warn-tint:#fbf3e4; --warn-border:#e6d09a; --warn-text:#7a5510;
+  --err-tint:#fbeeee;  --err-border:#e3b7b7;  --err-text:#8c2f2f;
+  --info-tint:#eef1f7; --info-border:#bfc9dd; --info-text:#3a4a70;
+
+  /* ---- Roles --------------------------------------------------------
+   * Components reference these, never the ramps above.
+   */
+  --bg:            var(--n-0);
+  --surface:       var(--n-50);
+  --surface-raised:var(--n-0);
+  --border:        var(--n-200);
+  --border-strong: var(--n-300);
+  --text:          var(--n-900);
+  --text-muted:    var(--n-600);   /* 7.22:1 on --surface, not just on white */
+  --text-inverse:  var(--n-0);
+  --accent:        var(--a-base);
+  --accent-text:   var(--a-text);
+  --focus:         var(--a-base);
+
+  /* ---- Space --------------------------------------------------------
+   * One scale. Internal padding is smaller than the gap between groups.
+   */
+  --s-1: 2px;  --s-2: 4px;  --s-3: 8px;  --s-4: 12px;
+  --s-5: 16px; --s-6: 24px; --s-7: 32px; --s-8: 48px; --s-9: 64px;
+
+  /* ---- Type ---------------------------------------------------------
+   * Set base and ratio from the direction; see references/typography.md.
+   */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
+
+  --t-xs:  12px;
+  --t-sm:  13px;
+  --t-md:  15px;   /* body */
+  --t-lg:  18px;
+  --t-xl:  22px;
+  --t-2xl: 28px;
+
+  --lh-tight: 1.2;
+  --lh-body:  1.5;
+  --measure:  68ch;
+
+  --w-regular: 400;
+  --w-medium:  500;
+  --w-strong:  600;
+
+  /* ---- Shape --------------------------------------------------------
+   * Inner radius = outer radius minus the padding between them.
+   * Small values here on purpose: pick your own, then hold it.
+   */
+  --r-sm: 3px;
+  --r-md: 6px;
+  --r-lg: 10px;
+  --r-full: 999px;   /* avatars and true pills only */
+
+  --border-w: 1px;
+
+  /* ---- Elevation ----------------------------------------------------
+   * Choose ONE containment treatment per surface: border, or shadow, or
+   * tint, or nothing. These exist for the surfaces that genuinely float.
+   */
+  --shadow-popover: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.08);
+  --shadow-modal:   0 2px 4px rgb(0 0 0 / 0.08), 0 12px 32px rgb(0 0 0 / 0.14);
+
+  /* ---- Motion -------------------------------------------------------
+   * One band, reused. See references/motion.md for which to use where.
+   */
+  --d-fast:   120ms;
+  --d-base:   200ms;
+  --d-slow:   280ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:  cubic-bezier(0.4, 0, 1, 1);
+  --ease-both:cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---- Layout -------------------------------------------------------- */
+  --page-max: 1200px;
+  --sidebar-w: 15rem;
+  --tap-min: 44px;
+}
+
+/* Dark theme: a second system. Elevate with lighter surfaces rather than
+ * shadows, desaturate the accent, avoid pure black and pure white.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:            var(--n-950);
+    --surface:       var(--n-900);
+    --surface-raised:var(--n-800);
+    --border:        var(--n-800);
+    --border-strong: var(--n-700);
+    --text:          var(--n-100);
+    --text-muted:    var(--n-400);
+    --text-inverse:  var(--n-950);
+    --accent:        #8fa8c4;   /* desaturated; 7.92:1 against --accent-text */
+    --accent-text:   var(--n-950);
+    --focus:         #8fa8c4;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg:            var(--n-950);
+  --surface:       var(--n-900);
+  --surface-raised:var(--n-800);
+  --border:        var(--n-800);
+  --border-strong: var(--n-700);
+  --text:          var(--n-100);
+  --text-muted:    var(--n-400);
+  --text-inverse:  var(--n-950);
+  --accent:        #8fa8c4;
+  --accent-text:   var(--n-950);
+  --focus:         #8fa8c4;
+}
+
+/* Baseline every project needs and few write. */
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: var(--w-regular) var(--t-md)/var(--lh-body) var(--font);
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+:where(button, [role="button"], a) {
+  min-height: var(--tap-min);   /* relax only for dense desktop-only surfaces */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;        /* ui-lint: ignore */
+    animation-iteration-count: 1 !important;      /* ui-lint: ignore */
+    transition-duration: 0.01ms !important;       /* ui-lint: ignore */
+    scroll-behavior: auto !important;             /* ui-lint: ignore */
+  }
+}
