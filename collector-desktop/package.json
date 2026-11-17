@@ -1,0 +1,75 @@
+{
+  "name": "safeear-desktop",
+  "productName": "SafeEar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SafeEar 데스크톱 수집기 (윈도우 · macOS) — 시스템 소리를 백그라운드에서 분석해 귀 피로도를 계산합니다",
+  "author": "경기북과학고 팀 망모둥",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/build.mjs && electron .",
+    "dev": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit -p .",
+    "dist": "node scripts/build.mjs --prod && electron-builder --win --x64",
+    "dist:dir": "node scripts/build.mjs --prod && electron-builder --win --x64 --dir",
+    "dist:mac": "node scripts/build.mjs --prod && electron-builder --mac",
+    "dist:mac:dir": "node scripts/build.mjs --prod && electron-builder --mac --dir"
+  },
+  "devDependencies": {
+    "@safeear/core": "0.1.0",
+    "@supabase/supabase-js": "2.117.2",
+    "@types/node": "22.18.0",
+    "electron": "43.7.7",
+    "electron-builder": "26.17.0",
+    "esbuild": "0.28.2",
+    "typescript": "6.0.3"
+  },
+  "build": {
+    "appId": "kr.hs.gbs.nabla.safeear",
+    "productName": "SafeEar",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "native",
+        "to": "native"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "SafeEar"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon-mac.png",
+      "category": "public.app-category.healthcare-fitness",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "extendInfo": {
+        "NSAudioCaptureUsageDescription": "이어폰으로 들은 소리가 귀에 얼마나 쌓였는지 계산하려고 시스템 소리를 분석해요. 소리는 녹음하거나 저장하지 않아요.",
+        "NSScreenCaptureUsageDescription": "macOS에서 시스템 소리를 받으려면 화면 통로를 함께 열어야 해요. 화면은 받자마자 닫고 쓰지 않아요."
+      }
+    },
+    "dmg": {
+      "title": "SafeEar",
+      "artifactName": "SafeEar-${version}-${arch}.dmg"
+    }
+  }
+}
