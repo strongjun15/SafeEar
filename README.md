@@ -172,7 +172,7 @@ These are extensions that need data collection and validation. Not every release
 | Platform | Status | Notes |
 |---|:---:|---|
 | **macOS** | ✅ Supported | macOS 13+, Apple silicon. System audio capture, volume, output device detection, menu bar |
-| **Windows** | 🧪 Testing | Background analysis from the notification area. Installer builds are supported |
+| **Windows** | ✅ Developed | Windows 10/11 (x64). System audio capture, volume, output device detection, notification area. Same codebase as the macOS app |
 | **Android** | 🗺️ Planned | System audio capture and a background collector |
 | **iOS · iPadOS** | 🗺️ Planned | Headphone audio levels from Health, combined with whatever capture the OS version allows |
 | **Web** | 🗺️ Exploring | Shared calculation core and a dashboard |
@@ -196,6 +196,8 @@ npm run desktop:mac    # macOS → collector-desktop/release/SafeEar-<version>-a
 ```bash
 npm run desktop:dist   # Windows → NSIS installer
 ```
+
+The Windows installer is easiest to build on a Windows PC. Building it on macOS or Linux may require Wine.
 
 For sign-in and sync, copy `collector-desktop/.env.example` to `collector-desktop/.env` and fill in the Supabase URL and publishable key. Without it, only offline use is available.
 

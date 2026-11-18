@@ -172,7 +172,7 @@ SafeEar는 사용자가 무엇을 듣는지보다, 청취로 어느 정도의 �
 | 플랫폼 | 상태 | 내용 |
 |---|:---:|---|
 | **macOS** | ✅ 지원 | macOS 13 이상, Apple 실리콘. 시스템 소리 캡처·볼륨·출력 장치 감지·메뉴 막대 실행 |
-| **Windows** | 🧪 검증 중 | 시스템 오디오를 분석하고 알림 영역에서 실행되는 앱. 설치 파일 빌드를 지원합니다 |
+| **Windows** | ✅ 개발됨 | Windows 10/11 (x64). 시스템 소리 캡처·볼륨·출력 장치 감지·알림 영역 실행. macOS 앱과 같은 코드입니다 |
 | **Android** | 🗺️ 계획 | 시스템 오디오 캡처와 백그라운드 수집기로 실생활 기록 확장 |
 | **iOS · iPadOS** | 🗺️ 계획 | 건강 앱의 헤드폰 청취 레벨 등 플랫폼 제공 정보와, OS 버전에 따라 허용되는 캡처 방법 조합 |
 | **Web** | 🗺️ 검토 | 공통 계산 코어와 대시보드 활용 |
@@ -196,6 +196,8 @@ npm run desktop:mac    # macOS → collector-desktop/release/SafeEar-<버전>-ar
 ```bash
 npm run desktop:dist   # Windows → NSIS 설치 파일
 ```
+
+Windows 설치 파일은 Windows PC에서 빌드하는 것이 가장 간단합니다. macOS나 Linux에서 빌드하려면 Wine이 필요할 수 있습니다.
 
 로그인과 기기 간 동기화를 쓰려면 `collector-desktop/.env.example`을 `collector-desktop/.env`로 복사하고 Supabase 주소와 publishable 키를 넣습니다. 이 파일이 없으면 「로그인 없이 사용」만 할 수 있습니다.
 
